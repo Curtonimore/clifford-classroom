@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -10,7 +10,7 @@ export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const menuItems: Record<string, { path: string; items: { title: string; path: string; }[] }> = {
+  const menuItems = useMemo(() => ({
     'AI Tools': {
       path: '/ai-tools',
       items: [
@@ -59,7 +59,7 @@ export default function Navigation() {
         { title: 'Reports', path: '/cliffboard/reports' },
       ],
     },
-  };
+  }), []);
 
   useEffect(() => {
     setMounted(true);
