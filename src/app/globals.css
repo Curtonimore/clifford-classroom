@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F2E8D5; /* Tan background */
+  --foreground: #000000;
+  --dark-green: #1B4332; /* Forest green */
+  --dark-green-700: #143728;
+  --dark-green-800: #0F2A1E;
+  --light-green: #E9F1E5; /* Very light greenish */
+  --tan: #F2E8D5; /* Light tan */
+  --tan-accent: #E9DCC9; /* Slightly darker tan */
+  --accent: #D9BE93; /* Warmer tan accent */
+  --dark-gray: #2C2C2C; /* Dark gray for navigation */
+  --success: #1B4332;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-average);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, 'Average', serif);
+}
+
+/* Typography enhancements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  font-family: var(--font-sans, 'Average', serif);
+}
+
+h1 {
+  font-size: 2.5rem;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  font-size: 2rem;
+  letter-spacing: -0.025em;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+p {
+  line-height: 1.6;
+  font-family: var(--font-sans, 'Average', serif);
+}
+
+/* Animation effects */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slideIn {
+  animation: slideInRight 0.4s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Transitions */
+a, button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles for accessibility */
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid rgba(27, 67, 50, 0.5);
+  outline-offset: 2px;
+}
+
+/* Custom gradients */
+.gradient-green {
+  background: linear-gradient(135deg, var(--dark-green) 0%, var(--dark-green-800) 100%);
+}
+
+.gradient-tan-green {
+  background: linear-gradient(135deg, var(--tan-accent) 0%, var(--light-green) 100%);
+}
+
+/* Card styling */
+.card {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background-color: var(--tan);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom theme classes */
+.text-dark-green {
+  color: var(--dark-green);
+}
+
+.text-dark-green-700 {
+  color: var(--dark-green-700);
+}
+
+.bg-dark-green {
+  background-color: var(--dark-green);
+}
+
+.bg-dark-green-700 {
+  background-color: var(--dark-green-700);
+}
+
+.bg-light-green {
+  background-color: var(--light-green);
+}
+
+.bg-tan {
+  background-color: var(--tan);
+}
+
+.bg-tan-accent {
+  background-color: var(--tan-accent);
+}
+
+.bg-dark-gray {
+  background-color: var(--dark-gray);
+}
+
+.hover\:bg-dark-green:hover {
+  background-color: var(--dark-green);
+}
+
+.hover\:bg-dark-green-700:hover {
+  background-color: var(--dark-green-700);
+}
+
+.hover\:text-dark-green:hover {
+  color: var(--dark-green);
+}
+
+.hover\:text-dark-green-700:hover {
+  color: var(--dark-green-700);
+}
