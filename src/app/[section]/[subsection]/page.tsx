@@ -1,4 +1,13 @@
-export default function SubPage({ params }: { params: { section: string; subsection: string } }) {
+import { Metadata } from 'next';
+
+type Props = {
+  params: {
+    section: string;
+    subsection: string;
+  };
+}
+
+export default function SubPage({ params }: Props) {
   const section = params?.section || '';
   const subsection = params?.subsection || '';
   

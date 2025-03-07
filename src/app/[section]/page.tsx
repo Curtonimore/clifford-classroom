@@ -1,4 +1,12 @@
-export default function SectionPage({ params }: { params: { section: string } }) {
+import { Metadata } from 'next';
+
+type Props = {
+  params: {
+    section: string;
+  };
+}
+
+export default function SectionPage({ params }: Props) {
   const section = params?.section || '';
   const sectionName = section.replace(/-/g, ' ')
     .split(' ')
