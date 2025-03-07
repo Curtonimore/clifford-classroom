@@ -10,31 +10,6 @@ export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
 
-  useEffect(() => {
-    setMounted(true);
-    
-    // Auto-expand section based on current path
-    Object.entries(menuItems).forEach(([title, { path }]) => {
-      if (pathname.startsWith(path)) {
-        setExpandedItem(title);
-      }
-    });
-  }, [pathname]);
-
-  const toggleExpand = (title: string, path: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    if (expandedItem === title) {
-      setExpandedItem(null);
-    } else {
-      setExpandedItem(title);
-    }
-  };
-
-  const navigateToSection = (path: string) => {
-    router.push(path);
-  };
-
   const menuItems: Record<string, { path: string; items: { title: string; path: string; }[] }> = {
     'AI Tools': {
       path: '/ai-tools',
@@ -84,6 +59,31 @@ export default function Navigation() {
         { title: 'Reports', path: '/cliffboard/reports' },
       ],
     },
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Auto-expand section based on current path
+    Object.entries(menuItems).forEach(([title, { path }]) => {
+      if (pathname.startsWith(path)) {
+        setExpandedItem(title);
+      }
+    });
+  }, [pathname, menuItems]);
+
+  const toggleExpand = (title: string, path: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (expandedItem === title) {
+      setExpandedItem(null);
+    } else {
+      setExpandedItem(title);
+    }
+  };
+
+  const navigateToSection = (path: string) => {
+    router.push(path);
   };
 
   return (

@@ -29,7 +29,7 @@ export default function ResourcesRecommendations() {
                     Recommended books and educational materials for different age groups.
                   </p>
                   <ul className="list-disc list-inside text-gray-200 space-y-1 text-sm">
-                    <li>Children's Books</li>
+                    <li>Children&apos;s Books</li>
                     <li>Young Adult Literature</li>
                     <li>Professional Development</li>
                     <li>Teaching Resources</li>

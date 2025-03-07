@@ -7,7 +7,7 @@ export default function PBIS() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">What is PBIS?</h2>
             <p className="text-gray-600 mb-4">
-              Positive Behavioral Interventions and Supports (PBIS) is an evidence-based framework for supporting students' behavioral, academic, social, emotional, and mental health.
+              Positive Behavioral Interventions and Supports (PBIS) is an evidence-based framework for supporting students&apos; behavioral, academic, social, emotional, and mental health.
             </p>
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-gray-900">Key Components</h3>

@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <div className="bg-tan min-h-screen">
@@ -11,18 +13,18 @@ export default function Home() {
             Your comprehensive platform for educational resources, lesson planning, and AI-powered teaching assistance.
           </p>
           <div className="flex justify-center gap-4 flex-wrap">
-            <a
+            <Link
               href="/lesson-planning"
               className="px-5 py-3 bg-tan text-dark-green font-medium rounded-md hover:bg-tan-accent transition-colors"
             >
               Get Started
-            </a>
-            <a
+            </Link>
+            <Link
               href="/about"
               className="px-5 py-3 bg-dark-green-700 text-white font-medium rounded-md border border-dark-green-500 hover:bg-dark-green-600 transition-colors"
             >
               Learn More
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -64,12 +66,12 @@ export default function Home() {
                 <p className="text-gray-200 mb-4">
                   Access hundreds of ready-to-use lesson plans or create your own with our intuitive tools.
                 </p>
-                <a href="/lesson-planning" className="text-light-blue hover:underline text-sm inline-flex items-center">
+                <Link href="/lesson-planning" className="text-light-blue hover:underline text-sm inline-flex items-center">
                   Explore Lesson Planning
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </a>
+                </Link>
               </div>
 
               {/* Educational News */}
@@ -78,12 +80,12 @@ export default function Home() {
                 <p className="text-gray-200 mb-4">
                   Stay updated with the latest trends, research, and best practices in education.
                 </p>
-                <a href="/resources/news" className="text-light-blue hover:underline text-sm inline-flex items-center">
+                <Link href="/resources/news" className="text-light-blue hover:underline text-sm inline-flex items-center">
                   Read Latest News
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </a>
+                </Link>
               </div>
 
               {/* AI Tools */}
@@ -92,12 +94,12 @@ export default function Home() {
                 <p className="text-gray-200 mb-4">
                   Discover how AI can enhance your teaching methods and provide personalized learning experiences.
                 </p>
-                <a href="/ai-tools" className="text-light-blue hover:underline text-sm inline-flex items-center">
+                <Link href="/ai-tools" className="text-light-blue hover:underline text-sm inline-flex items-center">
                   Explore AI Tools
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </a>
+                </Link>
               </div>
             </div>
           </div>
