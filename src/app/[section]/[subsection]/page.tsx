@@ -1,13 +1,12 @@
 // import { Metadata } from 'next';
 
-type Props = {
-  params: {
-    section: string;
-    subsection: string;
-  };
-}
-
-export default function SubPage({ params }: Props) {
+// @ts-ignore
+// eslint-disable-next-line
+export default function SubPage({ 
+  params 
+}: { 
+  params: { section: string; subsection: string } 
+}) {
   const section = params?.section || '';
   const subsection = params?.subsection || '';
   

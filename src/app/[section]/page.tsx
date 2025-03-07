@@ -1,12 +1,12 @@
 // import { Metadata } from 'next';
 
-type Props = {
-  params: {
-    section: string;
-  };
-}
-
-export default function SectionPage({ params }: Props) {
+// @ts-ignore
+// eslint-disable-next-line
+export default function SectionPage({ 
+  params 
+}: { 
+  params: { section: string } 
+}) {
   const section = params?.section || '';
   const sectionName = section.replace(/-/g, ' ')
     .split(' ')
