@@ -1,6 +1,7 @@
 import { AppProvider } from '@/context/AppContext';
 import { Metadata } from 'next';
 import { Average } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import NavBar from '@/components/NavBar';
 import './globals.css';
 
@@ -36,6 +37,7 @@ export default function RootLayout({
             </footer>
           </div>
         </AppProvider>
+        <Analytics />
       </body>
     </html>
   );
