@@ -17,12 +17,8 @@ export const metadata: Metadata = {
   description: 'A platform for learning and teaching - AI-powered educational resources for modern educators',
   keywords: "education, AI tools, teaching resources, classroom management, lesson planning",
   icons: {
-    icon: [
-      { url: '/clifford-logo.svg', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/clifford-logo.svg', type: 'image/svg+xml' },
-    ],
+    icon: '/clifford-logo.svg',
+    apple: '/clifford-logo.svg',
   },
 };
 
