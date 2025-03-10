@@ -1,81 +1,126 @@
-// import { Metadata } from 'next';
+'use client';
 
-// @ts-ignore
-// eslint-disable-next-line
+import { useEffect } from 'react';
+import { useAppContext } from '@/context/AppContext';
+import Link from 'next/link';
+
+// Breadcrumb navigation component
+function BreadcrumbNav({ section, subsection }: { section: string, subsection: string }) {
+  const formattedSection = section.replace(/-/g, ' ');
+  const formattedSubsection = subsection.replace(/-/g, ' ');
+  
+  return (
+    <div className="breadcrumb">
+      <Link href="/">Home</Link> / 
+      <Link href={`/${section}`}>{formattedSection}</Link> / 
+      <span>{formattedSubsection}</span>
+    </div>
+  );
+}
+
 export default function SubPage({ 
   params 
 }: { 
   params: { section: string; subsection: string } 
 }) {
-  const section = params?.section || '';
-  const subsection = params?.subsection || '';
+  const { setCurrentPath, showNotification } = useAppContext();
   
-  const sectionName = section.replace(/-/g, ' ')
+  // Update the global path state when component mounts or params change
+  useEffect(() => {
+    setCurrentPath(params.section, params.subsection);
+  }, [params.section, params.subsection, setCurrentPath]);
+
+  // Format the section and subsection for display
+  const formattedSection = params.section.replace(/-/g, ' ')
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
     
-  const subsectionName = subsection.replace(/-/g, ' ')
+  const formattedSubsection = params.subsection.replace(/-/g, ' ')
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
   return (
-    <div className="bg-tan min-h-screen">
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-dark-gray text-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-700 mb-6">
-            <span className="text-sm text-gray-300">
-              {sectionName} /
-            </span>
-            <h1 className="text-3xl font-extrabold text-white mb-4 mt-1">
-              {subsectionName}
-            </h1>
-            <p className="text-gray-200 mb-0 leading-relaxed">
-              Explore resources and content related to {subsectionName} within the {sectionName} section.
-            </p>
+    <>
+      <div className="breadcrumb-container">
+        <BreadcrumbNav section={params.section} subsection={params.subsection} />
+      </div>
+      
+      <header className="page-header">
+        <h1>{formattedSubsection}</h1>
+        <p className="subtitle">{formattedSection} Resources</p>
+      </header>
+      
+      <section className="content-section content-centered">
+        <div className="card">
+          <h2>Overview</h2>
+          <p>
+            Welcome to the {formattedSubsection} section. Here you'll find resources, 
+            lesson plans, and activities designed to help you teach {formattedSubsection} 
+            effectively within the {formattedSection} curriculum.
+          </p>
+          <button 
+            onClick={() => showNotification(`You're exploring ${formattedSubsection}!`)} 
+            className="button"
+          >
+            Explore Resources
+          </button>
+        </div>
+      </section>
+      
+      <section className="content-section">
+        <h2 className="section-title">Available Materials</h2>
+        <div className="section-grid">
+          <div className="card">
+            <h3>Lesson Plans</h3>
+            <p>Ready-to-use lesson plans for teaching {formattedSubsection}</p>
+            <Link href="#" className="button">View Lesson Plans</Link>
           </div>
           
-          <div className="bg-dark-gray text-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-700">
-            <h2 className="text-xl font-bold text-white mb-3">
-              Overview
-            </h2>
-            <div className="prose max-w-none prose-invert">
-              <p className="text-gray-200 leading-relaxed">
-                Welcome to the {subsectionName} page. This area contains specialized content and tools to support your teaching needs.
-              </p>
-              
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="p-4 bg-dark-green-700 rounded-md border border-dark-green-800">
-                  <h3 className="font-medium text-white mb-2">Resources</h3>
-                  <p className="text-sm text-gray-200">
-                    Access teaching materials, lesson plans, and additional documents.
-                  </p>
-                </div>
-                
-                <div className="p-4 bg-dark-green-700 rounded-md border border-dark-green-800">
-                  <h3 className="font-medium text-white mb-2">Activities</h3>
-                  <p className="text-sm text-gray-200">
-                    Browse interactive exercises, worksheets, and student projects.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-8">
-                <h3 className="text-lg font-medium text-white mb-3">Helpful Tips</h3>
-                <div className="bg-dark-green-800 p-4 rounded-md border border-dark-green-700">
-                  <p className="text-gray-100 text-sm mb-2">
-                    <strong>Pro Tip:</strong> When implementing {subsectionName} in your classroom, consider starting with small group activities before moving to whole-class implementation.
-                  </p>
-                  <p className="text-gray-100 text-sm">
-                    Need more guidance? Check out our <a href="#" className="text-light-blue hover:underline">detailed guide</a> or <a href="#" className="text-light-blue hover:underline">video tutorials</a>.
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="card">
+            <h3>Activities</h3>
+            <p>Engaging activities and worksheets for student practice</p>
+            <Link href="#" className="button">Browse Activities</Link>
+          </div>
+          
+          <div className="card">
+            <h3>Assessments</h3>
+            <p>Quizzes and assessment tools to measure learning</p>
+            <Link href="#" className="button">View Assessments</Link>
           </div>
         </div>
-      </div>
+      </section>
+      
+      <section className="content-section content-centered">
+        <div className="card">
+          <h2>Teaching Tips</h2>
+          <p>
+            When teaching {formattedSubsection}, consider these helpful strategies:
+          </p>
+          <ul className="feature-list">
+            <li>Connect concepts to real-world applications</li>
+            <li>Use visual aids to reinforce understanding</li>
+            <li>Incorporate group activities for collaborative learning</li>
+            <li>Provide regular feedback and opportunities for reflection</li>
+          </ul>
+        </div>
+      </section>
+      
+      <NotificationContainer />
+    </>
+  );
+}
+
+// Component to display notifications
+function NotificationContainer() {
+  const { notification } = useAppContext();
+  
+  if (!notification) return null;
+  
+  return (
+    <div className="notification">
+      {notification}
     </div>
   );
 } 
