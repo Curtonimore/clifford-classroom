@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Gradient green circular background (light to dark from top to bottom) -->
+  <defs>
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2e8b57;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f3d0f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle with gradient -->
+  <circle cx="200" cy="200" r="180" fill="url(#greenGradient)"/>
+  
+  <!-- Outer white border -->
+  <circle cx="200" cy="200" r="180" fill="none" stroke="white" stroke-width="8"/>
+  
+  <!-- Professional classic-styled C's - centered and close but not touching -->
+  <path d="M150 145 C115 145, 95 170, 95 200 C95 230, 115 255, 150 255 C165 255, 180 250, 190 240 L175 225 C170 230, 160 235, 150 235 C130 235, 115 220, 115 200 C115 180, 130 165, 150 165 C160 165, 170 170, 175 175 L190 160 C180 150, 165 145, 150 145 Z" 
+        fill="white"/>
+        
+  <path d="M250 145 C215 145, 195 170, 195 200 C195 230, 215 255, 250 255 C265 255, 280 250, 290 240 L275 225 C270 230, 260 235, 250 235 C230 235, 215 220, 215 200 C215 180, 230 165, 250 165 C260 165, 270 170, 275 175 L290 160 C280 150, 265 145, 250 145 Z" 
+        fill="white"/>
+  
+  <!-- More realistic desk -->
+  <rect x="110" y="275" width="180" height="15" fill="#8B4513" rx="2" ry="2"/>
+  <rect x="115" y="290" width="170" height="5" fill="#a05a2c" rx="1" ry="1"/>
+  <rect x="125" y="295" width="12" height="35" fill="#8B4513"/>
+  <rect x="263" y="295" width="12" height="35" fill="#8B4513"/>
+  <line x1="125" y1="305" x2="137" y2="305" stroke="#6d3011" stroke-width="1"/>
+  <line x1="263" y1="305" x2="275" y2="305" stroke="#6d3011" stroke-width="1"/>
+  <line x1="125" y1="315" x2="137" y2="315" stroke="#6d3011" stroke-width="1"/>
+  <line x1="263" y1="315" x2="275" y2="315" stroke="#6d3011" stroke-width="1"/>
+  
+  <!-- More realistic tree -->
+  <rect x="320" y="240" width="14" height="70" fill="#5d4037"/>
+  <path d="M327 170 C327 170, 295 200, 300 225 C305 240, 327 245, 327 245 C327 245, 349 240, 354 225 C359 200, 327 170, 327 170 Z" fill="#2e7d32"/>
+  <path d="M327 190 C327 190, 305 210, 308 230 C312 240, 327 240, 327 240 C327 240, 342 240, 346 230 C349 210, 327 190, 327 190 Z" fill="#388e3c"/>
+  <path d="M327 200 C327 200, 315 215, 317 230 C319 235, 327 235, 327 235 C327 235, 335 235, 337 230 C339 215, 327 200, 327 200 Z" fill="#43a047"/>
+</svg> 

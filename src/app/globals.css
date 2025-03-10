@@ -886,3 +886,26 @@ footer {
 .content-section.centered-content {
   text-align: center;
 }
+
+/* Logo styling */
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.logo-image {
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.logo-link:hover .logo-image {
+  transform: scale(1.05);
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--accent);
+}

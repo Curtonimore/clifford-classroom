@@ -2,6 +2,7 @@
 
 import { useAppContext } from '@/context/AppContext';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 
 // Define updated navigation structure based on the prompts
@@ -77,8 +78,15 @@ export default function NavBar() {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-logo">
-          <Link href="/">
-            Clifford Classroom
+          <Link href="/" className="logo-link">
+            <Image 
+              src="/clifford-logo.svg" 
+              alt="Clifford Classroom Logo" 
+              width={48} 
+              height={48} 
+              className="logo-image"
+            />
+            <span className="logo-text">Clifford Classroom</span>
           </Link>
         </div>
         
