@@ -11,6 +11,7 @@ A minimalist educational resource website using Next.js, React Context for globa
 - **Theme Toggle**: Switch between light and dark modes
 - **User Authentication**: Simple login/logout functionality
 - **Global Notifications**: System-wide notification handling
+- **AI Lesson Plan Generator**: Create and download custom lesson plans with OpenAI integration
 
 ## Sections
 
@@ -20,6 +21,7 @@ A minimalist educational resource website using Next.js, React Context for globa
 - **Brain & Development**: Content related to neuroscience and learning
 - **Meme Tracker**: Educational memes and trending content
 - **CliffTech Software**: Educational tools and software solutions
+- **Lesson Plan Generator**: AI-powered tool to create customized lesson plans
 
 ## Project Structure
 
@@ -68,3 +70,39 @@ A minimalist educational resource website using Next.js, React Context for globa
 ## Deployment
 
 Ready to deploy your website? Follow the [Next.js deployment documentation](https://nextjs.org/docs/deployment).
+
+## AI Lesson Plan Generator
+
+The website includes a powerful AI-powered lesson plan generator that allows educators to create custom lesson plans in seconds.
+
+### Features
+
+- Create detailed, standards-aligned lesson plans
+- Customize by grade level, subject, and topic
+- Download as professionally formatted PDFs
+- Includes all essential lesson plan components
+
+### Setup
+
+1. Create a `.env.local` file in the root directory based on `.env.local.example`
+2. Add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_key_here
+   ```
+   
+3. Restart the development server
+
+### Usage
+
+1. Navigate to the Lesson Plan Generator page
+2. Fill in the required fields (Grade Level, Subject, and Topic)
+3. Add optional fields like Standards and Learning Objectives
+4. Click "Generate Lesson Plan"
+5. Review the generated lesson plan
+6. Download as PDF for printing or sharing
+
+### Technologies Used
+
+- OpenAI GPT-4 API for content generation
+- jsPDF for PDF creation and formatting
+- React Markdown for rendering formatted content
