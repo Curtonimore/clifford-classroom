@@ -378,199 +378,188 @@ export default function LessonPlanPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <header className="text-center mb-10">
-        <h1 className="text-3xl font-bold mb-3">Lesson Plan Generator</h1>
-        <p className="text-gray-600 max-w-3xl mx-auto">
+    <>
+      <header className="page-header">
+        <h1 className="page-title">Lesson Plan Generator</h1>
+        <p className="page-description">
           Create customized lesson plans in seconds with our AI-powered tool
         </p>
       </header>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Generate Your Lesson Plan</h2>
-          <p className="text-gray-600 mb-6">
-            Our tool helps you create comprehensive lesson plans tailored to your specific needs.
-            Simply select your criteria below.
-          </p>
-          
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="audience" className="block text-sm font-medium text-gray-700 mb-1">
-                Grade Level<span className="text-red-500">*</span>
-              </label>
-              <select 
-                id="audience" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.audience}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Grade Level</option>
-                {GRADE_LEVELS.map(grade => (
-                  <option key={grade.value} value={grade.value}>{grade.label}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                Subject Area<span className="text-red-500">*</span>
-              </label>
-              <select 
-                id="subject" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.subject}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Subject</option>
-                {Object.entries(SUBJECTS_CONFIG).map(([value, { label }]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1">
-                Topic<span className="text-red-500">*</span>
-              </label>
-              <select 
-                id="topic" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.topic}
-                onChange={handleChange}
-                required
-                disabled={!formData.subject}
-              >
-                <option value="">Select Topic</option>
-                {availableTopics.map(topic => (
-                  <option key={topic.value} value={topic.value}>{topic.label}</option>
-                ))}
-              </select>
-            </div>
-            
-            {topicOptions.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Specific Focus Areas
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 rounded-md p-3 bg-gray-50">
-                  {topicOptions.map(option => (
-                    <div key={option.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`option-${option.id}`}
-                        checked={formData.selectedOptions.includes(option.id)}
-                        onChange={() => handleCheckboxChange(option.id)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                      <label htmlFor={`option-${option.id}`} className="ml-2 text-sm text-gray-700">
-                        {option.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Select specific areas to focus on in your lesson plan</p>
-              </div>
-            )}
-            
-            <div>
-              <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">
-                Lesson Duration
-              </label>
-              <select 
-                id="time" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.time}
-                onChange={handleChange}
-              >
-                <option value="">Select Duration</option>
-                {DURATION_OPTIONS.map(duration => (
-                  <option key={duration.value} value={duration.value}>{duration.label}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="standards" className="block text-sm font-medium text-gray-700 mb-1">
-                Standards
-              </label>
-              <input 
-                type="text" 
-                id="standards" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-                placeholder="e.g., CCSS.ELA-LITERACY.RL.5.1" 
-                value={formData.standards}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="objectives" className="block text-sm font-medium text-gray-700 mb-1">
-                Learning Objectives
-              </label>
-              <textarea 
-                id="objectives" 
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-                placeholder="e.g., Students will be able to identify and compare fractions..." 
-                value={formData.objectives}
-                onChange={handleChange}
-                rows={3}
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-            
-            <button 
-              type="submit"
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-medium transition-colors"
-              disabled={isGenerating}
-            >
-              {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
-            </button>
-            
-            <p className="text-xs text-gray-500 text-center">
-              <span className="text-red-500">*</span> Required fields
-            </p>
-          </form>
-        </section>
+      <section className="content-section">
+        <h2>Generate Your Lesson Plan</h2>
+        <p>
+          Our AI-powered tool helps you create comprehensive lesson plans tailored to your specific needs.
+          Simply select your criteria below and our AI will generate a customized plan for you.
+        </p>
         
-        <section>
-          {lessonPlan ? (
-            <div id="results-section" className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Your Lesson Plan</h2>
-                <button 
-                  onClick={handleDownloadPDF}
-                  className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-medium transition-colors"
-                >
-                  Download PDF
-                </button>
-              </div>
-              
-              <div className="prose max-w-none overflow-y-auto max-h-[600px] p-4 bg-gray-50 rounded-md">
-                <ReactMarkdown>{lessonPlan}</ReactMarkdown>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white p-6 rounded-lg shadow-md h-full flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No lesson plan yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Fill out the form and click "Generate Lesson Plan" to get started.
-                </p>
+        <form 
+          onSubmit={handleSubmit}
+          className="form-container" 
+          style={{ maxWidth: '700px', margin: '2rem auto' }}
+        >
+          <div className="form-group">
+            <label htmlFor="audience" className="form-label">Grade Level<span style={{ color: 'red' }}>*</span></label>
+            <select 
+              id="audience" 
+              className="form-input"
+              value={formData.audience}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Grade Level</option>
+              {GRADE_LEVELS.map(grade => (
+                <option key={grade.value} value={grade.value}>{grade.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="subject" className="form-label">Subject Area<span style={{ color: 'red' }}>*</span></label>
+            <select 
+              id="subject" 
+              className="form-input"
+              value={formData.subject}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Subject</option>
+              {Object.entries(SUBJECTS_CONFIG).map(([value, { label }]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="topic" className="form-label">Topic<span style={{ color: 'red' }}>*</span></label>
+            <select 
+              id="topic" 
+              className="form-input"
+              value={formData.topic}
+              onChange={handleChange}
+              required
+              disabled={!formData.subject}
+            >
+              <option value="">Select Topic</option>
+              {availableTopics.map(topic => (
+                <option key={topic.value} value={topic.value}>{topic.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          {topicOptions.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Specific Focus Areas</label>
+              <div 
+                className="checkbox-grid"
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '0.5rem'
+                }}
+              >
+                {topicOptions.map(option => (
+                  <div key={option.id} style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      id={`option-${option.id}`}
+                      checked={formData.selectedOptions.includes(option.id)}
+                      onChange={() => handleCheckboxChange(option.id)}
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    <label htmlFor={`option-${option.id}`}>{option.label}</label>
+                  </div>
+                ))}
               </div>
             </div>
           )}
-        </section>
-      </div>
+          
+          <div className="form-group">
+            <label htmlFor="time" className="form-label">Lesson Duration</label>
+            <select 
+              id="time" 
+              className="form-input"
+              value={formData.time}
+              onChange={handleChange}
+            >
+              <option value="">Select Duration</option>
+              {DURATION_OPTIONS.map(duration => (
+                <option key={duration.value} value={duration.value}>{duration.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="standards" className="form-label">Standards</label>
+            <input 
+              type="text" 
+              id="standards" 
+              className="form-input" 
+              placeholder="e.g., CCSS.ELA-LITERACY.RL.5.1" 
+              value={formData.standards}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="objectives" className="form-label">Learning Objectives</label>
+            <textarea 
+              id="objectives" 
+              className="form-input" 
+              placeholder="e.g., Students will be able to identify and compare fractions..." 
+              value={formData.objectives}
+              onChange={handleChange}
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+          
+          <button 
+            type="submit"
+            className="login-button"
+            style={{ width: '100%' }}
+            disabled={isGenerating}
+          >
+            {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
+          </button>
+          
+          <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center' }}>
+            <span style={{ color: 'red' }}>*</span> Required fields
+          </p>
+        </form>
+      </section>
       
-      <section className="mt-12 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">How It Works</h2>
-        <ol className="list-decimal pl-5 space-y-2">
+      {lessonPlan && (
+        <section id="results-section" className="content-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Your Lesson Plan</h2>
+            <button 
+              onClick={handleDownloadPDF}
+              className="home-button primary"
+              style={{ marginLeft: '1rem' }}
+            >
+              Download PDF
+            </button>
+          </div>
+          
+          <div 
+            className="lesson-plan-container"
+            style={{ 
+              backgroundColor: '#f9f9f9', 
+              padding: '1.5rem', 
+              borderRadius: '0.5rem',
+              marginTop: '1rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}
+          >
+            <ReactMarkdown>{lessonPlan}</ReactMarkdown>
+          </div>
+        </section>
+      )}
+      
+      <section className="content-section">
+        <h2>How It Works</h2>
+        <ol style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
           <li>Select your grade level, subject, and topic</li>
           <li>Choose specific focus areas within your selected topic</li>
           <li>Add optional details like standards and duration</li>
@@ -579,6 +568,6 @@ export default function LessonPlanPage() {
           <li>Download as a PDF for easy printing and sharing</li>
         </ol>
       </section>
-    </div>
+    </>
   );
 } 
