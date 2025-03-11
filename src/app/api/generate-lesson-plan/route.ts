@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Sample lesson plans for different subjects
 const SAMPLE_LESSON_PLANS = {
@@ -576,31 +577,7 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     }
   }
   
-  // Add the selected options to the learning objectives if provided
-  if (options && options.length > 0) {
-    // Find the Learning Objectives section
-    const objectivesPattern = /## Learning Objectives\n([^#]*)/;
-    const objectivesMatch = lessonPlan.match(objectivesPattern);
-    
-    if (objectivesMatch) {
-      let objectivesSection = objectivesMatch[1];
-      // Add the selected options as new objectives
-      objectivesSection += `- Focus on specific aspects: ${options}\n`;
-      
-      // Replace the original objectives section
-      lessonPlan = lessonPlan.replace(objectivesPattern, `## Learning Objectives\n${objectivesSection}`);
-    }
-  }
-  
-  // Add custom duration if provided
-  if (time) {
-    lessonPlan = lessonPlan.replace(
-      /### Direct Instruction \((\d+) minutes\)/,
-      `### Direct Instruction (adjusted for ${time})`
-    );
-  }
-  
-  // Add custom standards if provided
+  // 1. First handle custom standards if provided
   if (standards) {
     const standardsPattern = /## Standards Addressed\n([^#]*)/;
     const standardsMatch = lessonPlan.match(standardsPattern);
@@ -613,20 +590,39 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     }
   }
   
-  // Add custom objectives if provided
-  if (objectives) {
-    const objectivesPattern = /## Learning Objectives\n([^#]*)/;
-    const objectivesMatch = lessonPlan.match(objectivesPattern);
+  // 2. Handle custom objectives and options together
+  const objectivesPattern = /## Learning Objectives\n([^#]*)/;
+  const objectivesMatch = lessonPlan.match(objectivesPattern);
+  
+  if (objectivesMatch) {
+    let objectivesSection = "";
     
-    if (objectivesMatch) {
-      let objectivesSection = `- ${objectives}\n`;
-      
-      // Replace the original objectives section
-      lessonPlan = lessonPlan.replace(objectivesPattern, `## Learning Objectives\n${objectivesSection}`);
+    if (objectives) {
+      // If custom objectives provided, use them as the base
+      objectivesSection = `- ${objectives}\n`;
+    } else {
+      // Otherwise keep the template objectives
+      objectivesSection = objectivesMatch[1];
     }
+    
+    // Add the selected options as additional objectives if provided
+    if (options && options.length > 0) {
+      objectivesSection += `- Focus on specific aspects: ${options}\n`;
+    }
+    
+    // Replace the original objectives section
+    lessonPlan = lessonPlan.replace(objectivesPattern, `## Learning Objectives\n${objectivesSection}`);
   }
   
-  // Add materials section if provided
+  // 3. Add custom duration if provided
+  if (time) {
+    lessonPlan = lessonPlan.replace(
+      /### Direct Instruction \((\d+) minutes\)/,
+      `### Direct Instruction (adjusted for ${time})`
+    );
+  }
+  
+  // 4. Add materials section if provided
   if (materials) {
     // Find Materials Needed section
     const materialsPattern = /## Materials Needed\n([^#]*)/;
@@ -649,7 +645,7 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     }
   }
   
-  // Add teacher notes if provided
+  // 5. Add teacher notes if provided (these should come last)
   if (notes) {
     // Add a new Teacher Notes section at the end
     lessonPlan += `\n\n## Teacher Notes\n${notes}\n`;
@@ -661,16 +657,133 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
   return lessonPlan;
 }
 
+// Function to generate a lesson plan using Claude API
+async function generateLessonPlanWithClaude(subject, audience, topic, time, standards, objectives, options, materials, notes) {
+  try {
+    // Get API key from environment
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('Claude API key not found. Please add your ANTHROPIC_API_KEY to the .env.local file.');
+    }
+    
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
+    
+    // Construct a prompt for Claude
+    let prompt = `
+    Please create a detailed lesson plan for ${audience} students about ${topic} in ${subject}.
+    
+    The lesson plan should follow this structure:
+    1. A title and overview
+    2. Clear learning objectives
+    3. Standards addressed
+    4. Materials needed
+    5. Vocabulary terms
+    6. Detailed lesson procedure with timing
+    7. Assessment methods
+    8. Differentiation strategies
+    9. Extensions or homework
+    10. References/resources
+    
+    Additional requirements:
+    `;
+    
+    // Add any custom objectives
+    if (objectives) {
+      prompt += `\n- Learning objectives should include: ${objectives}`;
+    }
+    
+    // Add specific focus areas
+    if (options && options.length > 0) {
+      prompt += `\n- Focus specifically on: ${options}`;
+    }
+    
+    // Add material constraints
+    if (materials) {
+      prompt += `\n- Use only these available materials: ${materials}`;
+    }
+    
+    // Add time constraints
+    if (time) {
+      prompt += `\n- The lesson should be designed for a ${time} time period`;
+    }
+    
+    // Add standards
+    if (standards) {
+      prompt += `\n- Address these standards: ${standards}`;
+    }
+    
+    // Add teacher notes
+    if (notes) {
+      prompt += `\n- Additional requirements: ${notes}`;
+    }
+    
+    prompt += `\n\nPlease format the lesson plan in Markdown with clear headings and bullet points.`;
+    
+    // Call Claude API
+    const response = await anthropic.messages.create({
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+    });
+    
+    // Extract the lesson plan text from Claude's response - fix the type issue
+    let lessonPlan = '';
+    
+    // Check if there's any content and it has the expected structure
+    if (response.content && response.content.length > 0) {
+      const contentBlock = response.content[0];
+      
+      // Type guard to check if it's a text content block
+      if (contentBlock.type === 'text') {
+        lessonPlan = contentBlock.text;
+      } else {
+        // Fallback in case the structure is unexpected
+        lessonPlan = "Error: Unable to parse Claude's response. Please try again.";
+      }
+    } else {
+      lessonPlan = "Error: No content received from Claude API. Please try again.";
+    }
+    
+    return lessonPlan;
+  } catch (error) {
+    console.error('Error calling Claude API:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Get form data from request - add new fields
+    // Get form data from request
     const { standards, audience, time, subject, topic, objectives, options, materials, notes } = await request.json();
     
-    // Generate demo lesson plan (no API key needed)
-    const lessonPlan = generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes);
+    let lessonPlan = '';
     
-    // Add a small delay to simulate processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Decide whether to use Claude or demo mode
+    const useClaudeAPI = process.env.ANTHROPIC_API_KEY && process.env.USE_CLAUDE_API === 'true';
+    
+    if (useClaudeAPI) {
+      // Generate lesson plan with Claude API
+      lessonPlan = await generateLessonPlanWithClaude(
+        subject, audience, topic, time, standards, objectives, options, materials, notes
+      );
+    } else {
+      // Generate demo lesson plan (no API key needed)
+      lessonPlan = generateDemoLessonPlan(
+        subject, audience, topic, time, standards, objectives, options, materials, notes
+      );
+      
+      // Add a small delay to simulate processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
     
     return NextResponse.json({ 
       lessonPlan,
@@ -684,7 +797,8 @@ export async function POST(request: NextRequest) {
         options,
         materials,
         notes,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        mode: useClaudeAPI ? 'claude' : 'demo'
       }
     });
   } catch (error: any) {
