@@ -497,19 +497,34 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
   // Choose the most appropriate template based on subject
   let lessonPlan = '';
   
-  // Map the subject names from the form to the template keys
-  const subjectMap = {
-    'Mathematics': 'mathematics',
-    'Science': 'science',
-    'Language Arts': 'language_arts',
-    'Social Studies': 'social_studies'
-  };
+  // Fix the subject mapping - normalize to lowercase for comparison
+  const normalizedSubject = subject?.toLowerCase() || '';
+  let subjectKey = 'mathematics'; // Default
   
-  // Get the subject key for the template
-  const subjectKey = subjectMap[subject] || Object.keys(SAMPLE_LESSON_PLANS)[0];
+  // Determine appropriate subject template
+  if (normalizedSubject.includes('math')) {
+    subjectKey = 'mathematics';
+  } else if (normalizedSubject.includes('science')) {
+    subjectKey = 'science';
+  } else if (normalizedSubject.includes('language') || normalizedSubject.includes('english')) {
+    subjectKey = 'language_arts';
+  } else if (normalizedSubject.includes('social') || normalizedSubject.includes('history')) {
+    subjectKey = 'social_studies';
+  }
   
   // Get the template
   lessonPlan = SAMPLE_LESSON_PLANS[subjectKey] || SAMPLE_LESSON_PLANS.mathematics;
+  
+  // Extract grade level number (if present)
+  let gradeLevel = 0;
+  if (audience) {
+    const gradeMatch = audience.match(/(\d+)/);
+    if (gradeMatch) {
+      gradeLevel = parseInt(gradeMatch[1]);
+    } else if (audience.toLowerCase().includes('kindergarten')) {
+      gradeLevel = 0;
+    }
+  }
   
   // Customize the lesson plan title and audience
   let customTitle = `# ${topic} Lesson Plan`;
@@ -517,6 +532,49 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     customTitle += ` for ${audience}`;
   }
   lessonPlan = lessonPlan.replace(/^# .*$/m, customTitle);
+  
+  // Adjust difficulty based on grade level
+  if (gradeLevel >= 0 && gradeLevel <= 12) {
+    // Lower grade levels (K-2) - simplify language and examples
+    if (gradeLevel <= 2) {
+      lessonPlan = lessonPlan.replace(/complex concepts/gi, 'simple concepts');
+      lessonPlan = lessonPlan.replace(/analyzing/gi, 'exploring');
+      lessonPlan = lessonPlan.replace(/Students will analyze/gi, 'Students will explore');
+    }
+    // Upper elementary (3-5) - standard templates are usually targeted at this range
+    // Middle school (6-8) - increase complexity
+    else if (gradeLevel >= 6 && gradeLevel <= 8) {
+      lessonPlan = lessonPlan.replace(/basic understanding/gi, 'deeper understanding');
+      lessonPlan = lessonPlan.replace(/explore/gi, 'analyze');
+    }
+    // High school (9-12) - more advanced
+    else if (gradeLevel >= 9) {
+      lessonPlan = lessonPlan.replace(/explore/gi, 'critically analyze');
+      lessonPlan = lessonPlan.replace(/simple/gi, 'complex');
+    }
+  }
+  
+  // Specific topic customization
+  if (topic) {
+    const normalizedTopic = topic.toLowerCase();
+    
+    // Customize based on subject+topic
+    if (subjectKey === 'mathematics') {
+      if (normalizedTopic.includes('geometry')) {
+        lessonPlan = lessonPlan.replace(/fractions/gi, 'geometric shapes');
+        lessonPlan = lessonPlan.replace(/equations/gi, 'spatial relationships');
+      } else if (normalizedTopic.includes('number')) {
+        lessonPlan = lessonPlan.replace(/fractions/gi, 'numbers');
+        lessonPlan = lessonPlan.replace(/equivalent fractions/gi, 'number patterns');
+      }
+    }
+    else if (subjectKey === 'language_arts') {
+      if (normalizedTopic.includes('reading')) {
+        lessonPlan = lessonPlan.replace(/writing/gi, 'reading');
+        lessonPlan = lessonPlan.replace(/persuasive/gi, 'comprehension');
+      }
+    }
+  }
   
   // Add the selected options to the learning objectives if provided
   if (options && options.length > 0) {
