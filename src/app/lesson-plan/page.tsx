@@ -225,7 +225,9 @@ export default function LessonPlanPage() {
     subject: 'mathematics',
     topic: '',
     objectives: '',
-    selectedOptions: [] as string[]
+    selectedOptions: [] as string[],
+    materials: '',
+    notes: ''
   });
   
   // UI state
@@ -335,7 +337,9 @@ export default function LessonPlanPage() {
           subject: subjectLabel,
           topic: topicLabel,
           objectives: formData.objectives,
-          options: selectedOptionLabels
+          options: selectedOptionLabels,
+          materials: formData.materials,
+          notes: formData.notes
         })
       });
       
@@ -514,6 +518,38 @@ export default function LessonPlanPage() {
             />
           </div>
           
+          <div className="form-group">
+            <label htmlFor="materials" className="form-label">Materials Available</label>
+            <textarea 
+              id="materials" 
+              className="form-input" 
+              placeholder="List materials you have available (e.g., paper, markers, iPads, manipulatives)..." 
+              value={formData.materials}
+              onChange={handleChange}
+              rows={2}
+              style={{ resize: 'vertical' }}
+            />
+            <p style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: '#666' }}>
+              This helps ensure your lesson plan only includes activities using available resources.
+            </p>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="notes" className="form-label">Other Notes or Requirements</label>
+            <textarea 
+              id="notes" 
+              className="form-input" 
+              placeholder="Add any other specific requirements or notes for this lesson plan..." 
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
+            <p style={{ fontSize: '0.8rem', marginTop: '0.25rem', color: '#666' }}>
+              Examples: "Need to include group work", "Must have a homework component", "Should be inquiry-based"
+            </p>
+          </div>
+          
           <button 
             type="submit"
             className="login-button"
@@ -562,7 +598,8 @@ export default function LessonPlanPage() {
         <ol style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
           <li>Select your grade level, subject, and topic</li>
           <li>Choose specific focus areas within your selected topic</li>
-          <li>Add optional details like standards and duration</li>
+          <li>Add details about standards, objectives, and available materials</li>
+          <li>Include any additional notes or requirements</li>
           <li>Click "Generate Lesson Plan"</li>
           <li>Review the generated lesson plan</li>
           <li>Download as a PDF for easy printing and sharing</li>

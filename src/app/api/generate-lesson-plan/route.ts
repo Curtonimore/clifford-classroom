@@ -493,7 +493,7 @@ This lesson introduces students to the daily life, challenges, and cultural elem
 };
 
 // Function to generate a demo lesson plan based on the subject
-function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options) {
+function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) {
   // Choose the most appropriate template based on subject
   let lessonPlan = '';
   
@@ -626,6 +626,35 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     }
   }
   
+  // Add materials section if provided
+  if (materials) {
+    // Find Materials Needed section
+    const materialsPattern = /## Materials Needed\n([^#]*)/;
+    const materialsMatch = lessonPlan.match(materialsPattern);
+    
+    if (materialsMatch) {
+      let materialsSection = materialsMatch[1];
+      // Add the available materials note
+      materialsSection += `\n### Available Materials\n${materials}\n`;
+      
+      // Replace the original materials section
+      lessonPlan = lessonPlan.replace(materialsPattern, `## Materials Needed\n${materialsSection}`);
+    } else {
+      // If no Materials section exists, add one before Lesson Procedure
+      const procedurePattern = /## Lesson Procedure/;
+      lessonPlan = lessonPlan.replace(
+        procedurePattern, 
+        `## Materials Needed\n- ${materials}\n\n## Lesson Procedure`
+      );
+    }
+  }
+  
+  // Add teacher notes if provided
+  if (notes) {
+    // Add a new Teacher Notes section at the end
+    lessonPlan += `\n\n## Teacher Notes\n${notes}\n`;
+  }
+  
   // Add a note at the top about this being a demo
   lessonPlan = `> Note: This is a sample lesson plan template customized with your input. For fully personalized lesson plans, a valid AI API key would be required.\n\n${lessonPlan}`;
   
@@ -634,11 +663,11 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
 
 export async function POST(request: NextRequest) {
   try {
-    // Get form data from request
-    const { standards, audience, time, subject, topic, objectives, options } = await request.json();
+    // Get form data from request - add new fields
+    const { standards, audience, time, subject, topic, objectives, options, materials, notes } = await request.json();
     
     // Generate demo lesson plan (no API key needed)
-    const lessonPlan = generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options);
+    const lessonPlan = generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes);
     
     // Add a small delay to simulate processing
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -653,6 +682,8 @@ export async function POST(request: NextRequest) {
         topic,
         objectives,
         options,
+        materials,
+        notes,
         generatedAt: new Date().toISOString()
       }
     });
