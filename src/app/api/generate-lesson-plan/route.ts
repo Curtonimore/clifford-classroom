@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 // Sample lesson plans for different subjects
 const SAMPLE_LESSON_PLANS = {
@@ -493,31 +495,173 @@ This lesson introduces students to the daily life, challenges, and cultural elem
 - Jamestown Settlement and Plymouth Plantation virtual tours`
 };
 
+// Add a weather template specifically for rain and similar topics
+const WEATHER_TEMPLATE = `# Weather and Water Cycle Lesson Plan
+
+## Overview
+This lesson introduces students to weather patterns and phenomena, focusing on the water cycle and rain formation. Students will observe, describe, and learn about rain through hands-on activities and discussions that are appropriate for their grade level.
+
+## Learning Objectives
+- Students will identify and describe how rain forms as part of the water cycle
+- Students will understand the basic components of the water cycle: evaporation, condensation, and precipitation
+- Students will learn about how rain affects our environment and daily lives
+- Students will practice weather observation and recording skills
+
+## Standards Addressed
+- NGSS K-ESS2-1: Use and share observations of local weather conditions to describe patterns over time.
+- NGSS K-ESS3-2: Ask questions to obtain information about the purpose of weather forecasting to prepare for, and respond to, severe weather.
+
+## Materials Needed
+- Weather picture cards
+- Chart paper and markers
+- Weather observation worksheets
+- Clear plastic cups for water cycle demonstration
+
+## Vocabulary
+- Weather
+- Rain
+- Clouds
+- Precipitation
+- Water cycle
+- Evaporation
+- Condensation
+- Weather forecast
+
+## Lesson Procedure
+
+### Introduction/Hook (10 minutes)
+- Begin by asking students: "What's the weather like today? Has it rained recently?"
+- Have students look outside and describe what they observe about the current weather
+- Show pictures of rainy weather and discuss students' experiences with rain
+- Introduce the focus: "Today we're going to learn about rain and where it comes from!"
+
+### Direct Instruction (15 minutes)
+- Explain the water cycle using simple terms and visuals appropriate for the grade level
+- Demonstrate the water cycle using a clear cup with warm water and a cool plate
+- Discuss how water evaporates, forms clouds, and falls as rain
+- Show pictures of different types of clouds that produce rain
+- Connect rain and the water cycle to students' everyday experiences
+
+### Guided Practice (20 minutes)
+- Create a class chart showing the water cycle with special focus on rain formation
+- Have students act out the water cycle (starting as water, rising as vapor, forming clouds, falling as rain)
+- Guide students in creating rain clouds in a jar using shaving cream and food coloring
+- Observe and discuss how the "rain" falls in the demonstration
+
+### Independent Practice (15 minutes)
+- Students complete a simple water cycle worksheet with focus on the rain portion
+- Students draw pictures showing what happens during rainy weather
+- Students create a rain gauge to take home (using plastic bottles if available)
+- Weather vocabulary matching activity focusing on rain-related terms
+
+### Closure (5 minutes)
+- Review the main parts of the water cycle with emphasis on rain formation
+- Discuss: "Why is rain important for people, animals, and plants?"
+- Preview next lesson: "Tomorrow we'll learn about other types of weather!"
+
+## Assessment Methods
+- Observation of student participation in discussions and activities
+- Completion of water cycle worksheet
+- Student drawings of rainy weather
+- Exit ticket: "Where does rain come from?"
+
+## Differentiation Strategies
+- For struggling students: Provide visual supports and simplified vocabulary
+- For advanced students: Explore more complex weather patterns and measurement
+
+## Extensions
+- Set up a classroom rain gauge to measure precipitation
+- Create a classroom terrarium to observe the water cycle
+- Learn about different types of storms and precipitation
+
+## References/Resources
+- National Weather Service Education Resources
+- "The Water Cycle" by Rebecca Olien
+- "Rain" by Marion Dane Bauer
+`;
+
 // Function to generate a demo lesson plan based on the subject
 function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) {
-  // Choose the most appropriate template based on subject
+  // Choose the most appropriate template based on subject and topic
+  console.log("Generating demo lesson plan for:", { subject, topic, audience, options });
+  
   let lessonPlan = '';
   
-  // Fix the subject mapping - normalize to lowercase for comparison
-  const normalizedSubject = subject?.toLowerCase() || '';
-  let subjectKey = 'mathematics'; // Default
+  // Normalize inputs for comparison - convert to lowercase and trim
+  const normalizedSubject = (subject || '').toLowerCase().trim();
+  const normalizedTopic = (topic || '').toLowerCase().trim();
   
-  // Determine appropriate subject template
-  if (normalizedSubject.includes('math')) {
-    subjectKey = 'mathematics';
-  } else if (normalizedSubject.includes('science')) {
-    subjectKey = 'science';
-  } else if (normalizedSubject.includes('language') || normalizedSubject.includes('english')) {
-    subjectKey = 'language_arts';
-  } else if (normalizedSubject.includes('social') || normalizedSubject.includes('history')) {
-    subjectKey = 'social_studies';
+  // Fix options handling - handle both string and array cases
+  let normalizedOptions: string[] = [];
+  if (options) {
+    if (Array.isArray(options)) {
+      normalizedOptions = options.map(opt => String(opt).toLowerCase().trim());
+    } else if (typeof options === 'string') {
+      normalizedOptions = options.split(',').map(opt => opt.toLowerCase().trim());
+    }
   }
   
-  // Get the template
-  lessonPlan = SAMPLE_LESSON_PLANS[subjectKey] || SAMPLE_LESSON_PLANS.mathematics;
+  // Debug log
+  console.log("Normalized values:", { 
+    normalizedSubject, 
+    normalizedTopic, 
+    normalizedOptions
+  });
   
+  // Define topic matching function
+  const containsAnyOf = (text, keywords) => {
+    if (!text) return false;
+    return keywords.some(keyword => text.includes(keyword));
+  };
+  
+  // WEATHER DETECTION - Check for weather/water related keywords in topic and options
+  const weatherKeywords = ['rain', 'weather', 'cloud', 'water cycle', 'climate', 'precipitation', 'storm', 'atmosphere', 'environment'];
+  const environmentKeywords = ['environment', 'ecosystem', 'biome', 'habitat', 'conservation', 'earth science'];
+  
+  // Look for weather keywords in multiple fields
+  const hasWeatherTopic = containsAnyOf(normalizedTopic, weatherKeywords);
+  const hasWeatherOptions = normalizedOptions.some(opt => containsAnyOf(opt, weatherKeywords));
+  const hasEarthScience = normalizedSubject.includes('earth science') || 
+                          normalizedTopic.includes('earth science') ||
+                          containsAnyOf(normalizedTopic, environmentKeywords) ||
+                          normalizedOptions.some(opt => containsAnyOf(opt, environmentKeywords));
+  
+  console.log("Topic detection:", { 
+    hasWeatherTopic, 
+    hasWeatherOptions, 
+    hasEarthScience,
+    normalizedTopic,
+    normalizedOptions
+  });
+  
+  // If any weather indicators are found, use the weather template
+  if (hasWeatherTopic || hasWeatherOptions || hasEarthScience) {
+    console.log("Selected WEATHER template");
+    lessonPlan = WEATHER_TEMPLATE;
+  }
+  // Otherwise, use subject-based templates
+  else if (normalizedSubject.includes('math')) {
+    console.log("Selected MATH template");
+    lessonPlan = SAMPLE_LESSON_PLANS.mathematics;
+  } else if (normalizedSubject.includes('science')) {
+    console.log("Selected SCIENCE template");
+    lessonPlan = SAMPLE_LESSON_PLANS.science;
+  } else if (normalizedSubject.includes('language') || normalizedSubject.includes('english')) {
+    console.log("Selected LANGUAGE ARTS template");
+    lessonPlan = SAMPLE_LESSON_PLANS.language_arts;
+  } else if (normalizedSubject.includes('social') || normalizedSubject.includes('history')) {
+    console.log("Selected SOCIAL STUDIES template");
+    lessonPlan = SAMPLE_LESSON_PLANS.social_studies;
+  } else {
+    // Default to a general template if no match
+    console.log("No specific template match, using default");
+    lessonPlan = SAMPLE_LESSON_PLANS.mathematics;
+  }
+  
+  // Now, let's customize the lesson plan better for the specific topic
   // Extract grade level number (if present)
   let gradeLevel = 0;
+  let gradeLevelText = audience || '';
   if (audience) {
     const gradeMatch = audience.match(/(\d+)/);
     if (gradeMatch) {
@@ -528,10 +672,21 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
   }
   
   // Customize the lesson plan title and audience
-  let customTitle = `# ${topic} Lesson Plan`;
-  if (audience) {
-    customTitle += ` for ${audience}`;
+  let customTitle = '';
+  
+  if (hasWeatherTopic || hasWeatherOptions || hasEarthScience) {
+    // For weather lessons
+    if (normalizedTopic.includes('rain')) {
+      customTitle = `# Rain Lesson Plan for ${gradeLevelText}`;
+    } else {
+      customTitle = `# ${topic || 'Weather'} Lesson Plan for ${gradeLevelText}`;
+    }
+  } else {
+    // For other subjects
+    customTitle = `# ${topic || subject} Lesson Plan for ${gradeLevelText}`;
   }
+  
+  // Replace the original title
   lessonPlan = lessonPlan.replace(/^# .*$/m, customTitle);
   
   // Adjust difficulty based on grade level
@@ -560,7 +715,7 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     const normalizedTopic = topic.toLowerCase();
     
     // Customize based on subject+topic
-    if (subjectKey === 'mathematics') {
+    if (normalizedSubject === 'mathematics') {
       if (normalizedTopic.includes('geometry')) {
         lessonPlan = lessonPlan.replace(/fractions/gi, 'geometric shapes');
         lessonPlan = lessonPlan.replace(/equations/gi, 'spatial relationships');
@@ -569,7 +724,7 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
         lessonPlan = lessonPlan.replace(/equivalent fractions/gi, 'number patterns');
       }
     }
-    else if (subjectKey === 'language_arts') {
+    else if (normalizedSubject === 'language_arts') {
       if (normalizedTopic.includes('reading')) {
         lessonPlan = lessonPlan.replace(/writing/gi, 'reading');
         lessonPlan = lessonPlan.replace(/persuasive/gi, 'comprehension');
@@ -629,18 +784,24 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
     const materialsMatch = lessonPlan.match(materialsPattern);
     
     if (materialsMatch) {
-      let materialsSection = materialsMatch[1];
-      // Add the available materials note
-      materialsSection += `\n### Available Materials\n${materials}\n`;
+      // Replace the entire materials section with just the provided materials
+      // Split the materials by commas or newlines for better formatting
+      const materialsList = materials.split(/[,\n]+/).map(item => item.trim()).filter(item => item);
+      let materialsSection = materialsList.map(item => `- ${item}`).join('\n') + '\n';
       
       // Replace the original materials section
       lessonPlan = lessonPlan.replace(materialsPattern, `## Materials Needed\n${materialsSection}`);
     } else {
       // If no Materials section exists, add one before Lesson Procedure
       const procedurePattern = /## Lesson Procedure/;
+      
+      // Split the materials by commas or newlines for better formatting
+      const materialsList = materials.split(/[,\n]+/).map(item => item.trim()).filter(item => item);
+      let materialsSection = materialsList.map(item => `- ${item}`).join('\n');
+      
       lessonPlan = lessonPlan.replace(
         procedurePattern, 
-        `## Materials Needed\n- ${materials}\n\n## Lesson Procedure`
+        `## Materials Needed\n${materialsSection}\n\n## Lesson Procedure`
       );
     }
   }
@@ -660,13 +821,16 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
 // Function to generate a lesson plan using Claude API
 async function generateLessonPlanWithClaude(subject, audience, topic, time, standards, objectives, options, materials, notes) {
   try {
+    console.log("Starting Claude API integration");
     // Get API key from environment
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
     if (!apiKey) {
+      console.error("Claude API key not found");
       throw new Error('Claude API key not found. Please add your ANTHROPIC_API_KEY to the .env.local file.');
     }
     
+    console.log("Claude API key found, initializing client");
     const anthropic = new Anthropic({
       apiKey: apiKey,
     });
@@ -702,7 +866,9 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     
     // Add material constraints
     if (materials) {
-      prompt += `\n- Use only these available materials: ${materials}`;
+      prompt += `\n- IMPORTANT: Use ONLY these materials and nothing else: ${materials}. Do not add any additional materials to the list.`;
+    } else {
+      prompt += `\n- Keep the materials list simple and practical. Do not suggest overly complex or hard-to-source materials.`;
     }
     
     // Add time constraints
@@ -722,60 +888,172 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     
     prompt += `\n\nPlease format the lesson plan in Markdown with clear headings and bullet points.`;
     
+    console.log("Prompt prepared for Claude, sending request...");
+    
     // Call Claude API
-    const response = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 4000,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-    });
-    
-    // Extract the lesson plan text from Claude's response - fix the type issue
-    let lessonPlan = '';
-    
-    // Check if there's any content and it has the expected structure
-    if (response.content && response.content.length > 0) {
-      const contentBlock = response.content[0];
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-3-opus-20240229',
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+      });
       
-      // Type guard to check if it's a text content block
-      if (contentBlock.type === 'text') {
-        lessonPlan = contentBlock.text;
+      console.log("Claude API response received");
+      
+      // Extract the lesson plan text from Claude's response - fix the type issue
+      let lessonPlan = '';
+      
+      // Check if there's any content and it has the expected structure
+      if (response.content && response.content.length > 0) {
+        console.log("Content found in response, type:", response.content[0].type);
+        
+        const contentBlock = response.content[0];
+        
+        // Type guard to check if it's a text content block
+        if (contentBlock.type === 'text') {
+          lessonPlan = contentBlock.text;
+          console.log("Successfully extracted text content, length:", lessonPlan.length);
+        } else {
+          // Fallback in case the structure is unexpected
+          console.error("Unexpected content type:", contentBlock.type);
+          lessonPlan = "Error: Unable to parse Claude's response. Please try again.";
+        }
       } else {
-        // Fallback in case the structure is unexpected
-        lessonPlan = "Error: Unable to parse Claude's response. Please try again.";
+        console.error("No content in Claude response");
+        lessonPlan = "Error: No content received from Claude API. Please try again.";
       }
-    } else {
-      lessonPlan = "Error: No content received from Claude API. Please try again.";
+      
+      return lessonPlan;
+    } catch (apiError) {
+      console.error("Error during Claude API call:", apiError);
+      throw apiError;
     }
-    
-    return lessonPlan;
   } catch (error) {
-    console.error('Error calling Claude API:', error);
+    console.error('Error in Claude integration:', error);
     throw error;
   }
 }
 
+// Add this helper function to validate API key format
+function isValidClaudeApiKey(key: string | undefined): boolean {
+  if (!key) {
+    console.log("API key is undefined or empty");
+    return false;
+  }
+  
+  if (!key.trim().startsWith('sk-ant-')) {
+    console.log(`API key has invalid prefix. Should start with 'sk-ant-', got: ${key.substring(0, 8)}...`);
+    return false;
+  }
+  
+  if (key.length <= 20) {
+    console.log("API key is too short, expected length >20 characters");
+    return false;
+  }
+  
+  // DISABLED THIS CHECK - Allow api03 keys to be used 
+  // if (key.includes('api03')) {
+  //   console.log("API key contains 'api03' substring which may cause authentication issues");
+  //   return false;
+  // }
+  
+  console.log("API key validation passed ✓");
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    console.log("API route called");
     // Get form data from request
     const { standards, audience, time, subject, topic, objectives, options, materials, notes } = await request.json();
     
+    console.log("Form data received:", { subject, topic, audience });
+    
     let lessonPlan = '';
     
-    // Decide whether to use Claude or demo mode
-    const useClaudeAPI = process.env.ANTHROPIC_API_KEY && process.env.USE_CLAUDE_API === 'true';
+    // Check if demo mode is forced by the header
+    const forceDemoMode = request.headers.get('X-Force-Demo-Mode') === 'true';
+    if (forceDemoMode) {
+      console.log("Demo mode forced by request header");
+    }
     
-    if (useClaudeAPI) {
-      // Generate lesson plan with Claude API
-      lessonPlan = await generateLessonPlanWithClaude(
+    // Check authentication status
+    const session = await getServerSession(authOptions);
+    const isAuthenticated = !!session;
+    console.log("User authenticated:", isAuthenticated);
+    
+    // If user is not authenticated, force demo mode
+    if (!isAuthenticated) {
+      console.log("User not authenticated, forcing demo mode");
+      const demoLessonPlan = generateDemoLessonPlan(
         subject, audience, topic, time, standards, objectives, options, materials, notes
       );
+      
+      return NextResponse.json({ 
+        lessonPlan: demoLessonPlan,
+        metadata: {
+          standards,
+          audience,
+          time,
+          subject,
+          topic,
+          objectives,
+          options,
+          materials,
+          notes,
+          generatedAt: new Date().toISOString(),
+          mode: 'demo',
+          authRequired: true
+        }
+      });
+    }
+    
+    // Get the API key and validate it
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    console.log("API Key found:", apiKey ? "Yes (starts with: " + apiKey.substring(0, 10) + "...)" : "No");
+    const isValidKey = isValidClaudeApiKey(apiKey);
+    console.log("Is valid Claude API key format:", isValidKey);
+    
+    // Decide whether to use Claude or demo mode with better validation
+    const useClaudeAPI = !forceDemoMode && isValidKey && process.env.USE_CLAUDE_API === 'true';
+    console.log("Using Claude API:", useClaudeAPI, "Demo mode:", !useClaudeAPI);
+    
+    if (useClaudeAPI) {
+      console.log("Starting Claude API generation...");
+      try {
+        // Generate lesson plan with Claude API
+        lessonPlan = await generateLessonPlanWithClaude(
+          subject, audience, topic, time, standards, objectives, options, materials, notes
+        );
+        console.log("Claude generation complete, lesson plan length:", lessonPlan.length);
+      } catch (error) {
+        console.error("Error in Claude integration:", error);
+        // Fall back to demo mode on Claude API error
+        console.log("Falling back to demo mode due to Claude API error");
+        lessonPlan = generateDemoLessonPlan(
+          subject, audience, topic, time, standards, objectives, options, materials, notes
+        );
+      }
     } else {
+      // If Claude should be used but key is invalid, report the error
+      if (!forceDemoMode && process.env.USE_CLAUDE_API === 'true' && !isValidKey) {
+        console.error("Claude API requested but key is invalid or missing");
+        return NextResponse.json(
+          { 
+            error: "API Key Error",
+            message: "Claude API is enabled but the API key appears to be invalid. Please check your .env.local file."
+          },
+          { status: 500 }
+        );
+      }
+      
+      console.log("Using demo mode generation...");
       // Generate demo lesson plan (no API key needed)
       lessonPlan = generateDemoLessonPlan(
         subject, audience, topic, time, standards, objectives, options, materials, notes
@@ -783,8 +1061,10 @@ export async function POST(request: NextRequest) {
       
       // Add a small delay to simulate processing
       await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log("Demo generation complete");
     }
     
+    console.log("Sending response back to client");
     return NextResponse.json({ 
       lessonPlan,
       metadata: {

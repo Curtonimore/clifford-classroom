@@ -3,9 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import ReactMarkdown from 'react-markdown';
-import { generateLessonPlanPDF } from '@/utils/pdfGenerator';
 import { useRouter } from 'next/navigation';
-import { jsPDF } from 'jspdf';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+
+// Define the LessonPlanMetadata interface
+interface LessonPlanMetadata {
+  standards: string;
+  audience: string;
+  time: string;
+  subject: string;
+  topic: string;
+  objectives: string;
+  generatedAt: string;
+  [key: string]: any; // Allow other properties
+}
 
 // Subject-Topic relationship data structure
 const SUBJECTS_CONFIG = {
@@ -214,8 +226,13 @@ const DURATION_OPTIONS = [
 ];
 
 export default function LessonPlanPage() {
-  const { setCurrentPath, showNotification } = useAppContext();
+  const { setCurrentPath, showNotification, userSubscription, getAICreditsRemaining, hasFeature } = useAppContext();
   const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
+  
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -234,14 +251,43 @@ export default function LessonPlanPage() {
   const [availableTopics, setAvailableTopics] = useState<{value: string, label: string}[]>([]);
   const [topicOptions, setTopicOptions] = useState<{id: string, label: string}[]>([]);
   
+  // Demo mode state - forced for unauthenticated users, optional for authenticated
+  const [demoMode, setDemoMode] = useState(true);
+  
+  // AI credits
+  const [aiCredits, setAiCredits] = useState(0);
+  
   // State for lesson plan generation
   const [isGenerating, setIsGenerating] = useState(false);
   const [lessonPlan, setLessonPlan] = useState('');
-  const [lessonPlanMetadata, setLessonPlanMetadata] = useState(null);
+  const [lessonPlanMetadata, setLessonPlanMetadata] = useState<LessonPlanMetadata | null>(null);
+  
+  // Check authentication status
+  useEffect(() => {
+    if (authStatus !== 'loading') {
+      const authenticated = authStatus === 'authenticated';
+      setIsAuthenticated(authenticated);
+      setAuthChecked(true);
+      
+      // Only authenticated users can disable demo mode
+      if (!authenticated) {
+        setDemoMode(true);
+      } else {
+        // Check if user has access to AI lesson plans
+        const hasAiAccess = hasFeature('unlimited_lesson_plans');
+        if (!hasAiAccess) {
+          setDemoMode(true);
+        } 
+        
+        // Get AI credits
+        setAiCredits(getAICreditsRemaining());
+      }
+    }
+  }, [authStatus, hasFeature, getAICreditsRemaining]);
   
   // Set the current section
   useEffect(() => {
-    setCurrentPath('lesson-plan', '');
+    setCurrentPath('ai-teaching-tools', 'lesson-plan');
   }, [setCurrentPath]);
   
   // Update available topics when subject changes
@@ -289,10 +335,28 @@ export default function LessonPlanPage() {
       };
     });
   };
+  
+  // Handle demo mode toggle
+  const handleDemoModeToggle = () => {
+    // Only allow toggling if authenticated and they have AI access
+    if (isAuthenticated && hasFeature('unlimited_lesson_plans')) {
+      setDemoMode(!demoMode);
+    } else if (isAuthenticated) {
+      showNotification('You need a subscription to use AI-powered lesson plans');
+    }
+  };
+  
+  // Redirect to login if not authenticated
+  const handleLoginRedirect = () => {
+    router.push('/api/auth/signin?callbackUrl=/lesson-plan');
+  };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Log that we're starting the form submission
+    console.log("Form submission started");
     
     // Get the selected subject and topic labels for better readability
     const subjectLabel = formData.subject ? SUBJECTS_CONFIG[formData.subject].label : '';
@@ -316,6 +380,20 @@ export default function LessonPlanPage() {
     const timeObj = DURATION_OPTIONS.find(d => d.value === formData.time);
     const timeLabel = timeObj?.label || formData.time;
     
+    // Log the form data being sent to the API
+    console.log("Form data to be sent:", {
+      subject: subjectLabel,
+      topic: topicLabel,
+      audience: audienceLabel,
+      time: timeLabel,
+      options: selectedOptionLabels,
+      objectives: formData.objectives,
+      standards: formData.standards,
+      materials: formData.materials,
+      notes: formData.notes,
+      demoMode: demoMode
+    });
+    
     // Validate form
     if (!formData.subject || !formData.topic || !formData.audience) {
       showNotification('Please select Grade Level, Subject, and Topic');
@@ -325,10 +403,13 @@ export default function LessonPlanPage() {
     setIsGenerating(true);
     
     try {
+      console.log("Sending API request...");
       const response = await fetch('/api/generate-lesson-plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Add demo mode header
+          ...(demoMode && { 'X-Force-Demo-Mode': 'true' })
         },
         body: JSON.stringify({
           standards: formData.standards,
@@ -343,15 +424,22 @@ export default function LessonPlanPage() {
         })
       });
       
+      console.log("API response received, status:", response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("API error response:", errorData);
         throw new Error(errorData.error || 'Failed to generate lesson plan');
       }
       
       const data = await response.json();
+      console.log("Lesson plan data received, length:", data.lessonPlan?.length || 0);
+      
       setLessonPlan(data.lessonPlan);
       setLessonPlanMetadata(data.metadata);
-      showNotification('Lesson plan generated successfully!');
+      showNotification(demoMode 
+        ? 'Demo lesson plan generated successfully!' 
+        : 'Lesson plan generated successfully!');
       
       // Scroll to results
       setTimeout(() => {
@@ -359,27 +447,208 @@ export default function LessonPlanPage() {
       }, 500);
     } catch (error: any) {
       console.error('Error generating lesson plan:', error);
-      showNotification(`Error: ${error.message || 'Failed to generate lesson plan. Please try again.'}`);
+      
+      // Provide more detailed error message to user
+      let errorMessage = 'Failed to generate lesson plan. Please try again.';
+      
+      if (error.message && error.message.includes('API Key Error')) {
+        errorMessage = 'API configuration error. Using demo mode instead.';
+        // Try to generate a demo lesson plan automatically
+        setIsGenerating(true);
+        try {
+          const demoResponse = await fetch('/api/generate-lesson-plan', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Force-Demo-Mode': 'true', // Signal to use demo mode
+            },
+            body: JSON.stringify({
+              standards: formData.standards,
+              audience: audienceLabel,
+              time: timeLabel,
+              subject: subjectLabel,
+              topic: topicLabel,
+              objectives: formData.objectives,
+              options: selectedOptionLabels,
+              materials: formData.materials,
+              notes: formData.notes
+            })
+          });
+          
+          if (demoResponse.ok) {
+            const demoData = await demoResponse.json();
+            setLessonPlan(demoData.lessonPlan);
+            setLessonPlanMetadata(demoData.metadata);
+            showNotification('Using demo mode: Lesson plan generated successfully!');
+            
+            // Scroll to results
+            setTimeout(() => {
+              document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+            return;
+          }
+        } catch (demoError) {
+          console.error('Error in demo fallback:', demoError);
+        }
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      showNotification(errorMessage);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Handle PDF download
-  const handleDownloadPDF = () => {
+  // Replace PDF download with print functionality
+  const handlePrint = () => {
     if (!lessonPlan || !lessonPlanMetadata) {
-      showNotification('No lesson plan to download. Please generate one first.');
+      showNotification('No lesson plan to print. Please generate one first.');
       return;
     }
     
-    try {
-      const filename = generateLessonPlanPDF(lessonPlan, lessonPlanMetadata);
-      showNotification(`Lesson plan downloaded as ${filename}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      showNotification('Error generating PDF. Please try again.');
-    }
+    // Add a class to body before printing
+    document.body.classList.add('printing');
+    
+    // Trigger print
+    window.print();
+    
+    // Remove class after print dialog is closed
+    setTimeout(() => {
+      document.body.classList.remove('printing');
+    }, 500);
+    
+    showNotification('Print dialog opened. Please use your browser to print or save as PDF.');
   };
+
+  // Add a special effect for print media
+  useEffect(() => {
+    // Add print styles to document
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media print {
+        /* Hide everything except the lesson plan */
+        body * {
+          visibility: hidden;
+        }
+        
+        /* Show only the lesson plan container and its children */
+        .lesson-plan-container, 
+        .lesson-plan-container * {
+          visibility: visible;
+        }
+        
+        /* Position the lesson plan at the top of the page */
+        .lesson-plan-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          padding: 15mm !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          background-color: white !important;
+        }
+        
+        /* Additional print styling */
+        .lesson-plan-container h1 {
+          font-size: 16pt !important;
+          margin-top: 0 !important;
+          margin-bottom: 8pt !important;
+        }
+        
+        .lesson-plan-container h2 {
+          font-size: 14pt !important;
+          margin-top: 10pt !important;
+          margin-bottom: 6pt !important;
+          page-break-after: avoid !important;
+        }
+        
+        .lesson-plan-container h3 {
+          font-size: 12pt !important;
+          margin-top: 8pt !important;
+          margin-bottom: 4pt !important;
+          page-break-after: avoid !important;
+        }
+        
+        .lesson-plan-container p, 
+        .lesson-plan-container li {
+          font-size: 11pt !important;
+          line-height: 1.3 !important;
+          margin-top: 2pt !important;
+          margin-bottom: 2pt !important;
+        }
+        
+        /* Remove the 'page-break-before: always' rule for h2 elements */
+        /* Only add page breaks before major sections like 'Lesson Plan' or 'Assessment' */
+        .lesson-plan-container h2:not(:first-of-type) {
+          page-break-before: auto;
+        }
+        
+        /* Only force page breaks for these specific sections */
+        .lesson-plan-container h2:matches(:contains('Lesson Procedure'), :contains('Assessment')) {
+          page-break-before: always;
+        }
+        
+        /* Ensure header/footer elements stay with their content */
+        .lesson-plan-metadata {
+          page-break-after: avoid !important;
+        }
+        
+        .lesson-plan-container table {
+          margin-bottom: 8pt !important;
+        }
+        
+        .lesson-plan-container td {
+          padding: 2pt 0 !important;
+        }
+        
+        /* Reduce spacing for lists */
+        .lesson-plan-container ul,
+        .lesson-plan-container ol {
+          margin-top: 2pt !important;
+          margin-bottom: 2pt !important;
+          padding-left: 15pt !important;
+        }
+        
+        /* Control orphans and widows */
+        .lesson-plan-container p, 
+        .lesson-plan-container li,
+        .lesson-plan-container h2,
+        .lesson-plan-container h3 {
+          orphans: 3 !important;
+          widows: 3 !important;
+        }
+        
+        /* Footer with page numbers */
+        @page {
+          margin: 15mm;
+          @bottom-center {
+            content: "Page " counter(page) " of " counter(pages);
+            font-family: serif;
+            font-style: italic;
+            font-size: 9pt;
+          }
+        }
+      }
+      
+      /* Special class added to body during printing */
+      body.printing .lesson-plan-container {
+        background-color: white !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        z-index: 9999 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Clean up style when component unmounts
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <>
@@ -388,6 +657,11 @@ export default function LessonPlanPage() {
         <p className="page-description">
           Create customized lesson plans in seconds with our AI-powered tool
         </p>
+        <div className="back-link" style={{ marginTop: '0.5rem' }}>
+          <Link href="/ai-teaching-tools" style={{ color: '#0070f3', textDecoration: 'none' }}>
+            &larr; Back to AI Teaching Tools
+          </Link>
+        </div>
       </header>
       
       <section className="content-section">
@@ -397,11 +671,94 @@ export default function LessonPlanPage() {
           Simply select your criteria below and our AI will generate a customized plan for you.
         </p>
         
+        {authChecked && !isAuthenticated && (
+          <div className="auth-notice">
+            <div className="auth-message">
+              <h3>Demo Mode</h3>
+              <p>
+                You are currently using the demo version of our Lesson Plan Generator. This version provides 
+                basic functionality with pre-built templates.
+              </p>
+              <p>
+                <strong>Sign in to access advanced features:</strong>
+              </p>
+              <ul>
+                <li>Advanced AI-powered lesson plan generation</li>
+                <li>Save your lesson plans to your account</li>
+                <li>Customize plans with more options</li>
+              </ul>
+              <button 
+                onClick={handleLoginRedirect}
+                className="login-button"
+                style={{ marginTop: '1rem' }}
+              >
+                Sign In to Unlock Full Features
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {isAuthenticated && (
+          <div className="premium-notice">
+            <div className="premium-message">
+              <h3>Coming Soon: Premium Plans</h3>
+              <p>
+                We're excited to announce that premium subscription plans are coming soon!
+              </p>
+              <p>
+                <strong>Premium subscribers will enjoy:</strong>
+              </p>
+              <ul>
+                <li>Unlimited AI-generated lesson plans</li>
+                <li>Advanced customization options</li>
+                <li>Save and organize your lesson plans in your personal library</li>
+                <li>Export to various formats (PDF, Word, Google Docs)</li>
+                <li>Collaborative features for team planning</li>
+              </ul>
+              <p>
+                All registered users will receive an email when premium plans are available.
+                For now, enjoy the demo mode for free!
+              </p>
+              
+              {isAuthenticated && userSubscription && (
+                <div className="subscription-status">
+                  <p><strong>Your current plan:</strong> {userSubscription.tier.charAt(0).toUpperCase() + userSubscription.tier.slice(1)}</p>
+                  <p><strong>AI credits remaining:</strong> {aiCredits}</p>
+                  <Link href="/subscription" className="login-button" style={{ display: 'inline-block', marginTop: '0.5rem' }}>
+                    View Subscription Plans
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         <form 
           onSubmit={handleSubmit}
           className="form-container" 
           style={{ maxWidth: '700px', margin: '2rem auto' }}
         >
+          {isAuthenticated && (
+            <div className="demo-toggle">
+              <label className="demo-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={demoMode}
+                  onChange={handleDemoModeToggle}
+                  className="demo-checkbox"
+                />
+                <span style={{ marginLeft: '0.5rem' }}>
+                  Use Demo Mode (doesn't use AI credits)
+                </span>
+              </label>
+              {!demoMode && (
+                <p className="demo-info">
+                  <strong>Note:</strong> Using AI mode will utilize 1 credit from your account ({aiCredits} remaining)
+                </p>
+              )}
+            </div>
+          )}
+          
           <div className="form-group">
             <label htmlFor="audience" className="form-label">Grade Level<span style={{ color: 'red' }}>*</span></label>
             <select 
@@ -556,7 +913,7 @@ export default function LessonPlanPage() {
             style={{ width: '100%' }}
             disabled={isGenerating}
           >
-            {isGenerating ? 'Generating...' : 'Generate Lesson Plan'}
+            {isGenerating ? 'Generating...' : `Generate ${demoMode ? 'Demo ' : ''}Lesson Plan`}
           </button>
           
           <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center' }}>
@@ -570,11 +927,11 @@ export default function LessonPlanPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Your Lesson Plan</h2>
             <button 
-              onClick={handleDownloadPDF}
+              onClick={handlePrint}
               className="home-button primary"
               style={{ marginLeft: '1rem' }}
             >
-              Download PDF
+              Print / Save PDF
             </button>
           </div>
           
@@ -588,6 +945,41 @@ export default function LessonPlanPage() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
             }}
           >
+            {/* Add metadata section to the printable area */}
+            <div className="lesson-plan-metadata" style={{ marginBottom: '2rem', borderBottom: '1px solid #ddd', paddingBottom: '1rem' }}>
+              <h1 style={{ marginTop: 0 }}>{lessonPlanMetadata?.subject || 'Lesson Plan'}: {lessonPlanMetadata?.topic || ''}</h1>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '4px 0', width: '150px', fontWeight: 'bold' }}>Grade Level:</td>
+                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.audience || ''}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Duration:</td>
+                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.time || ''}</td>
+                  </tr>
+                  {lessonPlanMetadata?.standards && (
+                    <tr>
+                      <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Standards:</td>
+                      <td style={{ padding: '4px 0' }}>{lessonPlanMetadata.standards}</td>
+                    </tr>
+                  )}
+                  {lessonPlanMetadata?.objectives && (
+                    <tr>
+                      <td style={{ padding: '4px 0', fontWeight: 'bold', verticalAlign: 'top' }}>Objectives:</td>
+                      <td style={{ padding: '4px 0' }}>{lessonPlanMetadata.objectives}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Generated:</td>
+                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.generatedAt ? new Date(lessonPlanMetadata.generatedAt).toLocaleString() : new Date().toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                Generated by Clifford Classroom
+              </div>
+            </div>
             <ReactMarkdown>{lessonPlan}</ReactMarkdown>
           </div>
         </section>
@@ -602,9 +994,103 @@ export default function LessonPlanPage() {
           <li>Include any additional notes or requirements</li>
           <li>Click "Generate Lesson Plan"</li>
           <li>Review the generated lesson plan</li>
-          <li>Download as a PDF for easy printing and sharing</li>
+          <li>Click "Print / Save PDF" to print or save as PDF</li>
         </ol>
       </section>
+      
+      <style jsx>{`
+        .auth-notice {
+          background-color: #f8f9fa;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          border-left: 4px solid #0070f3;
+        }
+        
+        .auth-message {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        
+        .auth-message h3 {
+          margin-top: 0;
+          color: #0070f3;
+        }
+        
+        .auth-message ul {
+          margin-bottom: 1.5rem;
+        }
+        
+        .auth-message li {
+          margin-bottom: 0.5rem;
+        }
+        
+        .premium-notice {
+          background-color: #f0f8ff;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-top: 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          border-left: 4px solid #8a2be2;
+        }
+        
+        .premium-message {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        
+        .premium-message h3 {
+          margin-top: 0;
+          color: #8a2be2;
+        }
+        
+        .premium-message ul {
+          margin-bottom: 1.5rem;
+        }
+        
+        .premium-message li {
+          margin-bottom: 0.5rem;
+        }
+        
+        .subscription-status {
+          background-color: white;
+          border-radius: 6px;
+          padding: 1rem;
+          margin-top: 1rem;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .demo-toggle {
+          background-color: #f0f7ff;
+          padding: 1rem;
+          border-radius: 6px;
+          margin-bottom: 1.5rem;
+          border: 1px solid #bfdbfe;
+        }
+        
+        .demo-toggle-label {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          font-weight: 500;
+        }
+        
+        .demo-checkbox {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+        }
+        
+        .demo-info {
+          margin-top: 0.5rem;
+          margin-bottom: 0;
+          font-size: 0.85rem;
+          color: #4b5563;
+        }
+      `}</style>
     </>
   );
 } 

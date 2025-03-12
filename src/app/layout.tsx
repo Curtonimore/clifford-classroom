@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { Average } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import NavBar from '@/components/NavBar';
+import SessionProvider from '@/providers/SessionProvider';
 import './globals.css';
 
 const averageFont = Average({
@@ -34,17 +35,19 @@ export default function RootLayout({
   return (
     <html lang="en" className={averageFont.variable}>
       <body className={averageFont.className}>
-        <AppProvider>
-          <div className="app-container">
-            <NavBar />
-            <main className="content-container">
-              {children}
-            </main>
-            <footer>
-              <p>Clifford Classroom &copy; {new Date().getFullYear()} - Educational Resources for Modern Educators</p>
-            </footer>
-          </div>
-        </AppProvider>
+        <SessionProvider>
+          <AppProvider>
+            <div className="app-container">
+              <NavBar />
+              <main className="content-container">
+                {children}
+              </main>
+              <footer>
+                <p>Clifford Classroom &copy; {new Date().getFullYear()} - Educational Resources for Modern Educators</p>
+              </footer>
+            </div>
+          </AppProvider>
+        </SessionProvider>
         <Analytics />
       </body>
     </html>

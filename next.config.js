@@ -14,6 +14,13 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: [
+      'lh3.googleusercontent.com', // Google profile pictures
+    ],
+    // Optionally, you can add more domains as needed
+    // domains: ['lh3.googleusercontent.com', 'example.com', 'another-domain.com']
+  },
 };
 
 module.exports = nextConfig; 
