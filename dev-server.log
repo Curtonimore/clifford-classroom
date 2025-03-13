@@ -1,0 +1,84 @@
+[2025-03-13T12:57:09.218Z] === Enhanced Next.js Dev Server ===
+[2025-03-13T12:57:09.223Z] Log file: /Users/cliffordc/Documents/GitHub/clifford-classroom/dev-server.log
+[2025-03-13T12:57:09.223Z] Starting Next.js dev server (attempt 1/5)
+[2025-03-13T12:57:09.224Z] Next.js process started with PID: 32544
+[2025-03-13T12:57:09.224Z] Memory limit set to 4096MB
+▲ Next.js 14.1.0
+- Local:        http://localhost:3000
+   - Environments: .env.local
+[2025-03-13T12:57:11.886Z] Forcing shutdown...
+✓ Ready in 3.2s
+○ Compiling /api/auth/[...nextauth] ...
+✓ Compiled /api/auth/[...nextauth] in 1782ms (254 modules)
+○ Compiling /support ...
+✓ Compiled / in 6.1s (871 modules)
+○ Compiling /icon.svg ...
+✓ Compiled /icon.svg in 593ms (600 modules)
+ERROR: ⚠ The "images.domains" configuration is deprecated. Please use "images.remotePatterns" configuration instead.
+✓ Compiled /profile in 415ms (905 modules)
+✓ Compiled /admin in 251ms (911 modules)
+✓ Compiled /admin/dashboard in 234ms (917 modules)
+✓ Compiled /api/admin/users in 73ms (615 modules)
+✓ Compiled in 507ms (636 modules)
+✓ Compiled in 913ms (636 modules)
+✓ Compiled in 497ms (636 modules)
+✓ Compiled in 200ms (636 modules)
+✓ Compiled in 209ms (636 modules)
+○ Compiling /api/auth/[...nextauth] ...
+✓ Compiled /api/auth/[...nextauth] in 1017ms (563 modules)
+✓ Compiled /api/user/subscription in 181ms (579 modules)
+✓ Compiled / in 84ms (583 modules)
+ERROR: ⨯ TypeError: Cannot read properties of undefined (reading 'entryCSSFiles')
+    at re (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:2878)
+    at rf (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:11494)
+    at rv (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:13209)
+    at rk (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:20028)
+    at /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:28648
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Object.wrap (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:36:16172)
+    at /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:28536
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at Object.wrap (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:36:15420)
+    at r_ (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:28463)
+    at rW.render (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:32559)
+    at doRender (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:1394:44)
+    at cacheEntry.responseCache.get.routeKind (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:1555:34)
+    at ResponseCache.get (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/response-cache/index.js:49:26)
+    at DevServer.renderToResponseWithComponentsImpl (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:1463:53)
+    at /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:992:121
+    at NextTracerImpl.trace (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/lib/trace/tracer.js:104:20)
+    at DevServer.renderToResponseWithComponents (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:992:41)
+    at DevServer.renderPageComponent (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:1856:35)
+    at async DevServer.renderToResponseImpl (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:1894:32)
+    at async DevServer.pipeImpl (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:911:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/next-server.js:271:17)
+    at async DevServer.handleRequestImpl (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/base-server.js:807:17)
+    at async /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/dev/next-dev-server.js:331:20
+    at async Span.traceAsyncFn (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/trace/trace.js:151:20)
+    at async DevServer.handleRequest (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/dev/next-dev-server.js:328:24)
+    at async invokeRender (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/lib/router-server.js:163:21)
+    at async handleRequest (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/lib/router-server.js:342:24)
+    at async requestHandlerImpl (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/lib/router-server.js:366:13)
+    at async Server.requestListener (/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/lib/start-server.js:140:13) {
+  page: '/'
+}
+○ Compiling /_error ...
+✓ Compiled /_error in 2.2s (1049 modules)
+✓ Compiled /not-found in 151ms (625 modules)
+✓ Compiled in 238ms (1052 modules)
+ERROR: <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/Users/cliffordc/Documents/GitHub/clifford-classroom/.next/server/app/api/admin'
+ERROR: <w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/admin/users/route' in /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/Users/cliffordc/Documents/GitHub/clifford-classroom/.next/server/app/api/admin/users/route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/admin/users/route' in '/Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/admin/users/route (expected /Users/cliffordc/Documents/GitHub/clifford-classroom/.next/server/app/api/admin/users/route.js)
+<w>  at file dependencies /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/require.js
+<w>  at file /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/require.js
+<w>  at file dependencies /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/load-components.js
+<w>  at file /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/utils.js
+<w>  at file /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/worker.js
+<w>  at file /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/worker.js
+<w>  at file dependencies /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at file /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at resolve commonjs /Users/cliffordc/Documents/GitHub/clifford-classroom/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+[?25h
+[2025-03-13T13:24:52.582Z] Next.js process exited cleanly

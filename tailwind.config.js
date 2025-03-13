@@ -10,6 +10,9 @@ module.exports = {
       colors: {
         accent: "#1B4332",
       },
+      fontFamily: {
+        sans: ['var(--font-average)', 'Average', 'serif'],
+      },
     },
   },
   plugins: [],

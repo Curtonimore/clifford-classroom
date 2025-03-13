@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth/next";
 import { DefaultUser, Session, User } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import { AdapterUser } from "next-auth/adapters";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import clientPromise from "./mongodb-client";
 
 // Define user roles and permissions
 export type Role = "user" | "premium" | "admin";
@@ -27,6 +29,7 @@ function isAdminEmail(email: string | null | undefined): boolean {
 }
 
 export const authOptions: NextAuthOptions = {
+  adapter: MongoDBAdapter(clientPromise),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,

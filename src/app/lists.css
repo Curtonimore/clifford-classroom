@@ -1,0 +1,46 @@
+/* Custom List Styling */
+
+ul, ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+  list-style-position: outside;
+  font-family: var(--font-average, 'Average', serif) !important;
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+ul li, ol li {
+  color: #000000;
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  font-family: var(--font-average, 'Average', serif) !important;
+}
+
+/* Custom bullet styling for unordered lists */
+ul.custom-bullets {
+  list-style: none;
+  padding-left: 1rem;
+}
+
+ul.custom-bullets li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+ul.custom-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent, #1B4332);
+  border-radius: 50%;
+} 

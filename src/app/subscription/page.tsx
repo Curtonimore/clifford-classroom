@@ -1,100 +1,106 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useAppContext } from '@/context/AppContext';
 import Link from 'next/link';
 
-interface PricingTier {
-  id: string;
-  name: string;
-  price: string;
-  features: string[];
-  description: string;
-  buttonText: string;
-  popular?: boolean;
-}
+// Define subscription tiers
+const SUBSCRIPTION_TIERS = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: '$5.99',
+    period: 'month',
+    features: [
+      'Up to 100 lesson plans',
+      'PDF exports',
+      '30 AI credits per month',
+      'Email support'
+    ],
+    recommended: false
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: '$12.99',
+    period: 'month',
+    features: [
+      'Unlimited lesson plans',
+      'Advanced customization options',
+      '150 AI credits per month',
+      'Priority support',
+      'Export in all formats',
+      'Collaborative sharing'
+    ],
+    recommended: true
+  }
+];
 
 export default function SubscriptionPage() {
   const { data: session, status } = useSession();
-  const { setCurrentPath, showNotification } = useAppContext();
   const router = useRouter();
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const { setCurrentPath, showNotification } = useAppContext();
+  const [isLoading, setIsLoading] = useState(false);
+  const [processingTier, setProcessingTier] = useState<string | null>(null);
   
   useEffect(() => {
-    setCurrentPath('account', 'subscription');
-    
-    // Simulate checking user's current plan
-    // In a real app, this would come from your database
-    if (session) {
-      setCurrentPlan('free');
+    setCurrentPath('subscription', '');
+  }, [setCurrentPath]);
+  
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin?callbackUrl=/subscription');
     }
-  }, [setCurrentPath, session]);
+  }, [status, router]);
   
-  const pricingTiers: PricingTier[] = [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '$0',
-      description: 'Basic features for educators just getting started',
-      features: [
-        'Access to demo lesson plans',
-        'Limited AI generations',
-        'Basic profile customization',
-        'Community forum access'
-      ],
-      buttonText: 'Current Plan',
-    },
-    {
-      id: 'basic',
-      name: 'Basic',
-      price: '$9.99',
-      description: 'Everything you need for regular lesson planning',
-      features: [
-        '50 AI-generated lesson plans per month',
-        'Save up to 100 lesson plans',
-        'Export as PDF',
-        'Email support',
-        'Remove watermarks'
-      ],
-      popular: true,
-      buttonText: 'Upgrade',
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: '$19.99',
-      description: 'Advanced features for power users',
-      features: [
-        'Unlimited AI-generated lesson plans',
-        'Unlimited storage',
-        'Export in all formats',
-        'Priority support',
-        'Collaboration with 3 team members',
-        'Advanced customization options',
-        'Early access to new features'
-      ],
-      buttonText: 'Upgrade',
-    },
-  ];
-  
-  const handleSubscribe = (tierId: string) => {
-    if (!session) {
-      showNotification('Please sign in to subscribe');
-      router.push('/api/auth/signin?callbackUrl=/subscription');
+  // Function to initiate checkout
+  const handleSubscribe = async (tierId: string) => {
+    if (status !== 'authenticated') {
+      router.push('/auth/signin?callbackUrl=/subscription');
       return;
     }
     
-    if (tierId === currentPlan) {
-      showNotification('You are already subscribed to this plan');
-      return;
-    }
+    setProcessingTier(tierId);
+    setIsLoading(true);
     
-    // This is where you would integrate with your payment provider
-    // For now, we'll just show a notification
-    showNotification('Subscription feature coming soon!');
+    try {
+      const response = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier: tierId,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+      
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error creating checkout session:', error);
+      showNotification(error.message || 'Failed to create checkout session');
+      setIsLoading(false);
+      setProcessingTier(null);
+    }
   };
+  
+  // Get user's current subscription tier
+  const currentTier = session?.user?.role === 'premium' 
+    ? 'premium' 
+    : session?.user?.role === 'admin' ? 'admin' : 'free';
   
   return (
     <>
@@ -106,250 +112,329 @@ export default function SubscriptionPage() {
       </header>
       
       <section className="content-section">
-        <div className="subscription-notice">
-          <h3>🚀 Coming Soon!</h3>
-          <p>
-            Our subscription plans are currently in development and will be available soon. 
-            This page demonstrates how the subscription system will work.
-          </p>
-          <p>
-            In the meantime, all registered users have access to the demo features.
-          </p>
-        </div>
-        
-        {!session && (
-          <div className="auth-notice">
-            <p>
-              You need to <Link href="/api/auth/signin?callbackUrl=/subscription">sign in</Link> to subscribe to a plan.
-            </p>
-          </div>
-        )}
-        
-        <div className="pricing-container">
-          {pricingTiers.map((tier) => (
-            <div 
-              key={tier.id} 
-              className={`pricing-tier ${tier.popular ? 'popular' : ''} ${tier.id === currentPlan ? 'current' : ''}`}
-            >
-              {tier.popular && <div className="popular-badge">Most Popular</div>}
-              <h3>{tier.name}</h3>
-              <div className="price">{tier.price}<span className="period">/month</span></div>
-              <p className="description">{tier.description}</p>
-              <ul className="features">
-                {tier.features.map((feature, index) => (
-                  <li key={index}>✓ {feature}</li>
-                ))}
-              </ul>
-              <button 
-                className={`subscription-button ${tier.id === currentPlan ? 'current-plan' : ''}`}
-                onClick={() => handleSubscribe(tier.id)}
-                disabled={tier.id === currentPlan}
-              >
-                {tier.id === currentPlan ? 'Current Plan' : tier.buttonText}
-              </button>
+        <div className="subscription-container">
+          {/* Current subscription status */}
+          <div className="current-subscription">
+            <h2>Your Current Plan</h2>
+            <div className="current-tier">
+              <span className={`plan-badge plan-${currentTier}`}>
+                {currentTier === 'admin'
+                  ? 'Admin (Unlimited Access)'
+                  : currentTier === 'premium'
+                  ? 'Premium'
+                  : 'Free'}
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
-      
-      <section className="faq-section">
-        <h2>Frequently Asked Questions</h2>
-        <div className="faq-container">
-          <div className="faq-item">
-            <h3>Can I cancel my subscription at any time?</h3>
-            <p>Yes, you can cancel your subscription at any time. Your access will continue until the end of your billing period.</p>
+            {currentTier === 'premium' && (
+              <p className="expiry-info">
+                Your premium subscription is active.
+              </p>
+            )}
           </div>
-          <div className="faq-item">
-            <h3>How do the AI credits work?</h3>
-            <p>Each plan comes with a certain number of AI-generated lesson plans per month. Once you've used your allocation, you can purchase additional credits or wait for your next billing cycle.</p>
+          
+          {/* Subscription tiers */}
+          <div className="subscription-tiers">
+            <div className="free-tier">
+              <div className="tier-header">
+                <h3>Free</h3>
+                <div className="tier-price">$0</div>
+              </div>
+              <ul className="tier-features">
+                <li>5 lesson plans</li>
+                <li>5 AI credits</li>
+                <li>Basic customization</li>
+              </ul>
+              <div className="tier-action">
+                <span className="current-plan-label">Current Plan</span>
+              </div>
+            </div>
+            
+            {SUBSCRIPTION_TIERS.map((tier) => (
+              <div 
+                key={tier.id} 
+                className={`subscription-tier ${tier.recommended ? 'recommended' : ''}`}
+              >
+                {tier.recommended && (
+                  <div className="recommended-badge">Recommended</div>
+                )}
+                <div className="tier-header">
+                  <h3>{tier.name}</h3>
+                  <div className="tier-price">
+                    {tier.price}
+                    <span className="price-period">/{tier.period}</span>
+                  </div>
+                </div>
+                <ul className="tier-features">
+                  {tier.features.map((feature, idx) => (
+                    <li key={idx}>{feature}</li>
+                  ))}
+                </ul>
+                <div className="tier-action">
+                  {currentTier === 'admin' ? (
+                    <button className="admin-button" disabled>
+                      Admin Access
+                    </button>
+                  ) : currentTier === tier.id ? (
+                    <span className="current-plan-label">Current Plan</span>
+                  ) : (
+                    <button 
+                      className="subscribe-button"
+                      onClick={() => handleSubscribe(tier.id)}
+                      disabled={isLoading || processingTier !== null}
+                    >
+                      {isLoading && processingTier === tier.id ? (
+                        <span className="loading-spinner"></span>
+                      ) : (
+                        `Subscribe to ${tier.name}`
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="faq-item">
-            <h3>Can I upgrade or downgrade my plan?</h3>
-            <p>Yes, you can change your plan at any time. If you upgrade, you'll be charged the prorated difference. If you downgrade, the change will take effect at the end of your current billing cycle.</p>
-          </div>
-          <div className="faq-item">
-            <h3>What payment methods do you accept?</h3>
-            <p>We accept all major credit cards, PayPal, and school purchase orders for educational institutions.</p>
+          
+          {/* FAQs */}
+          <div className="subscription-faqs">
+            <h2>Frequently Asked Questions</h2>
+            <div className="faq-item">
+              <h3>Can I cancel anytime?</h3>
+              <p>Yes, you can cancel your subscription at any time. Your subscription will remain active until the end of your current billing period.</p>
+            </div>
+            <div className="faq-item">
+              <h3>What payment methods do you accept?</h3>
+              <p>We accept all major credit cards through our secure payment processor, Stripe.</p>
+            </div>
+            <div className="faq-item">
+              <h3>What happens to my content if I downgrade?</h3>
+              <p>Your content remains saved, but you'll have limited access to premium features and won't be able to create new content beyond your plan's limits.</p>
+            </div>
           </div>
         </div>
       </section>
       
       <style jsx>{`
-        .subscription-notice {
-          background-color: #fff8e6;
+        .subscription-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem 0;
+        }
+        
+        .current-subscription {
+          background: white;
           border-radius: 8px;
           padding: 1.5rem;
           margin-bottom: 2rem;
-          border-left: 4px solid #ffc107;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         
-        .subscription-notice h3 {
-          margin-top: 0;
-          color: #b45309;
+        .current-tier {
+          margin-top: 1rem;
         }
         
-        .auth-notice {
-          background-color: #f0f7ff;
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-          border-left: 4px solid #0070f3;
-          text-align: center;
-          font-size: 1.1rem;
-        }
-        
-        .pricing-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 2rem;
-          justify-content: center;
-          margin: 2rem 0;
-        }
-        
-        .pricing-tier {
-          background-color: white;
-          border-radius: 10px;
-          padding: 2rem;
-          width: 300px;
-          position: relative;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .pricing-tier:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-        
-        .pricing-tier.popular {
-          border: 2px solid #0070f3;
-          transform: scale(1.05);
-        }
-        
-        .pricing-tier.popular:hover {
-          transform: scale(1.05) translateY(-5px);
-        }
-        
-        .pricing-tier.current {
-          border: 2px solid #10b981;
-        }
-        
-        .popular-badge {
-          position: absolute;
-          top: -12px;
-          right: 20px;
-          background-color: #0070f3;
-          color: white;
-          padding: 0.25rem 1rem;
+        .plan-badge {
+          display: inline-block;
+          padding: 0.5rem 1rem;
           border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: bold;
+          font-weight: 600;
+          font-size: 0.875rem;
         }
         
-        .pricing-tier h3 {
-          margin-top: 0;
-          font-size: 1.5rem;
-          color: #333;
-        }
-        
-        .price {
-          font-size: 2.5rem;
-          font-weight: bold;
-          margin: 1rem 0;
-          color: #0070f3;
-        }
-        
-        .period {
-          font-size: 1rem;
-          color: #6b7280;
-          font-weight: normal;
-        }
-        
-        .description {
-          color: #6b7280;
-          margin-bottom: 1.5rem;
-        }
-        
-        .features {
-          list-style-type: none;
-          padding: 0;
-          margin: 0 0 2rem 0;
-        }
-        
-        .features li {
-          margin-bottom: 0.75rem;
+        .plan-free {
+          background-color: #e5e7eb;
           color: #4b5563;
         }
         
-        .subscription-button {
-          width: 100%;
-          padding: 0.75rem;
-          border-radius: 6px;
-          background-color: #0070f3;
+        .plan-premium {
+          background-color: #fef3c7;
+          color: #92400e;
+        }
+        
+        .plan-admin {
+          background-color: #dbeafe;
+          color: #1e40af;
+        }
+        
+        .expiry-info {
+          margin-top: 0.5rem;
+          font-size: 0.875rem;
+          color: #6b7280;
+        }
+        
+        .subscription-tiers {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+          margin-bottom: 3rem;
+        }
+        
+        .free-tier, .subscription-tier {
+          flex: 1;
+          min-width: 250px;
+          background: white;
+          border-radius: 8px;
+          padding: 1.5rem;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .subscription-tier.recommended {
+          border: 2px solid #3b82f6;
+          transform: scale(1.02);
+          z-index: 1;
+        }
+        
+        .recommended-badge {
+          position: absolute;
+          top: -12px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #3b82f6;
           color: white;
+          padding: 0.25rem 1rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+        
+        .tier-header {
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+        
+        .tier-header h3 {
+          font-size: 1.5rem;
+          color: #1f2937;
+          margin-bottom: 0.5rem;
+        }
+        
+        .tier-price {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #111827;
+        }
+        
+        .price-period {
+          font-size: 1rem;
+          font-weight: 400;
+          color: #6b7280;
+        }
+        
+        .tier-features {
+          margin: 0;
+          padding: 0;
+          list-style-type: none;
+          margin-bottom: 2rem;
+          flex-grow: 1;
+        }
+        
+        .tier-features li {
+          padding: 0.5rem 0;
+          color: #4b5563;
+          position: relative;
+          padding-left: 1.5rem;
+        }
+        
+        .tier-features li:before {
+          content: "✓";
+          color: #10b981;
+          position: absolute;
+          left: 0;
           font-weight: bold;
+        }
+        
+        .tier-action {
+          text-align: center;
+        }
+        
+        .current-plan-label {
+          display: inline-block;
+          padding: 0.625rem 1.25rem;
+          background: #f3f4f6;
+          color: #4b5563;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          font-size: 0.875rem;
+        }
+        
+        .subscribe-button {
+          width: 100%;
+          padding: 0.625rem 1.25rem;
+          background: #3b82f6;
+          color: white;
           border: none;
+          border-radius: 0.375rem;
+          font-weight: 500;
           cursor: pointer;
-          transition: background-color 0.2s ease;
+          transition: background 0.2s;
         }
         
-        .subscription-button:hover {
-          background-color: #005ad1;
+        .subscribe-button:hover {
+          background: #2563eb;
         }
         
-        .subscription-button.current-plan {
-          background-color: #10b981;
-          cursor: default;
-        }
-        
-        .subscription-button:disabled {
-          opacity: 0.7;
+        .subscribe-button:disabled {
+          background: #93c5fd;
           cursor: not-allowed;
         }
         
-        .faq-section {
-          margin-top: 4rem;
+        .admin-button {
+          width: 100%;
+          padding: 0.625rem 1.25rem;
+          background: #dbeafe;
+          color: #1e40af;
+          border: none;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          cursor: not-allowed;
         }
         
-        .faq-container {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-          gap: 2rem;
-          margin-top: 2rem;
+        .loading-spinner {
+          display: inline-block;
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
+        .subscription-faqs {
+          margin-top: 3rem;
         }
         
         .faq-item {
-          background-color: white;
+          background: white;
           border-radius: 8px;
           padding: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          margin-bottom: 1rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .faq-item h3 {
           margin-top: 0;
-          color: #111827;
-          font-size: 1.1rem;
+          color: #1f2937;
+          font-size: 1.125rem;
+        }
+        
+        .faq-item p {
+          margin-bottom: 0;
+          color: #4b5563;
         }
         
         @media (max-width: 768px) {
-          .pricing-container {
+          .subscription-tiers {
             flex-direction: column;
-            align-items: center;
           }
           
-          .pricing-tier {
-            width: 100%;
-            max-width: 400px;
-          }
-          
-          .pricing-tier.popular {
-            transform: none;
-            order: -1;
-          }
-          
-          .faq-container {
-            grid-template-columns: 1fr;
+          .subscription-tier.recommended {
+            transform: scale(1);
           }
         }
       `}</style>

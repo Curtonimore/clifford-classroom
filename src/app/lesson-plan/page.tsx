@@ -262,6 +262,17 @@ export default function LessonPlanPage() {
   const [lessonPlan, setLessonPlan] = useState('');
   const [lessonPlanMetadata, setLessonPlanMetadata] = useState<LessonPlanMetadata | null>(null);
   
+  // State for saving lesson plan
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // State for storage usage
+  const [storageUsage, setStorageUsage] = useState<{
+    used: number;
+    limit: number;
+    percentUsed: number;
+    remaining: number;
+  } | null>(null);
+  
   // Check authentication status
   useEffect(() => {
     if (authStatus !== 'loading') {
@@ -269,21 +280,39 @@ export default function LessonPlanPage() {
       setIsAuthenticated(authenticated);
       setAuthChecked(true);
       
-      // Only authenticated users can disable demo mode
+      // Force demo mode for unauthenticated users
       if (!authenticated) {
         setDemoMode(true);
       } else {
+        // For authenticated users, default to demo mode but allow them to change it
         // Check if user has access to AI lesson plans
         const hasAiAccess = hasFeature('unlimited_lesson_plans');
         if (!hasAiAccess) {
+          // Just set default to true, but don't force it
           setDemoMode(true);
-        } 
+        }
         
         // Get AI credits
         setAiCredits(getAICreditsRemaining());
+        
+        // Fetch storage usage
+        fetchStorageUsage();
       }
     }
   }, [authStatus, hasFeature, getAICreditsRemaining]);
+  
+  // Fetch storage usage information
+  const fetchStorageUsage = async () => {
+    try {
+      const response = await fetch('/api/lesson-plans/storage-usage');
+      if (response.ok) {
+        const data = await response.json();
+        setStorageUsage(data.storageInfo);
+      }
+    } catch (error) {
+      console.error('Error fetching storage usage:', error);
+    }
+  };
   
   // Set the current section
   useEffect(() => {
@@ -338,11 +367,14 @@ export default function LessonPlanPage() {
   
   // Handle demo mode toggle
   const handleDemoModeToggle = () => {
-    // Only allow toggling if authenticated and they have AI access
-    if (isAuthenticated && hasFeature('unlimited_lesson_plans')) {
+    // Allow any authenticated user to toggle demo mode
+    if (isAuthenticated) {
       setDemoMode(!demoMode);
-    } else if (isAuthenticated) {
-      showNotification('You need a subscription to use AI-powered lesson plans');
+      
+      // Show a notification about premium features if user doesn't have unlimited access
+      if (!demoMode && !hasFeature('unlimited_lesson_plans')) {
+        showNotification('You are using demo mode with limited features. Upgrade for full AI capabilities!');
+      }
     }
   };
   
@@ -650,6 +682,74 @@ export default function LessonPlanPage() {
     };
   }, []);
 
+  // Handle saving lesson plan
+  const handleSaveLessonPlan = async () => {
+    if (!lessonPlan || !lessonPlanMetadata) {
+      showNotification('No lesson plan to save. Please generate one first.');
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      console.log("Sending API request to save lesson plan...");
+      const response = await fetch('/api/lesson-plans/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `${lessonPlanMetadata?.subject}: ${lessonPlanMetadata?.topic}`,
+          subject: lessonPlanMetadata?.subject || '',
+          audience: lessonPlanMetadata?.audience || '',
+          time: lessonPlanMetadata?.time || '',
+          topic: lessonPlanMetadata?.topic || '',
+          objectives: lessonPlanMetadata?.objectives || '',
+          content: lessonPlan,
+          isPublic: false,
+          tags: [lessonPlanMetadata?.subject || '', lessonPlanMetadata?.topic || '']
+        })
+      });
+      
+      console.log("API response received, status:", response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error response:", errorData);
+        
+        // Handle storage limit errors specifically
+        if (response.status === 403 && errorData.storageInfo) {
+          setStorageUsage(errorData.storageInfo);
+          throw new Error(`${errorData.error} Upgrade your subscription to increase this limit.`);
+        }
+        
+        throw new Error(errorData.error || 'Failed to save lesson plan');
+      }
+      
+      const responseData = await response.json();
+      
+      // Update storage usage if available in response
+      if (responseData.storageInfo) {
+        setStorageUsage(responseData.storageInfo);
+      }
+      
+      showNotification('Lesson plan saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving lesson plan:', error);
+      
+      // Provide more detailed error message to user
+      let errorMessage = 'Failed to save lesson plan. Please try again.';
+      
+      if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      showNotification(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <>
       <header className="page-header">
@@ -723,7 +823,35 @@ export default function LessonPlanPage() {
               {isAuthenticated && userSubscription && (
                 <div className="subscription-status">
                   <p><strong>Your current plan:</strong> {userSubscription.tier.charAt(0).toUpperCase() + userSubscription.tier.slice(1)}</p>
-                  <p><strong>AI credits remaining:</strong> {aiCredits}</p>
+                  <p><strong>AI credits remaining:</strong> {aiCredits === Infinity ? 'Unlimited' : aiCredits}</p>
+                  
+                  {/* Add storage usage information */}
+                  {storageUsage && (
+                    <div className="storage-usage">
+                      <p>
+                        <strong>Lesson Plan Storage:</strong> {storageUsage.used} of {storageUsage.limit === Infinity ? '∞' : storageUsage.limit}
+                        {storageUsage.limit !== Infinity && (
+                          <span className="storage-percentage"> ({storageUsage.percentUsed}% used)</span>
+                        )}
+                      </p>
+                      {storageUsage.limit !== Infinity && (
+                        <div className="storage-bar">
+                          <div 
+                            className="storage-bar-fill" 
+                            style={{ 
+                              width: `${Math.min(storageUsage.percentUsed, 100)}%`,
+                              backgroundColor: storageUsage.percentUsed > 90 
+                                ? '#ef4444' // red for >90%
+                                : storageUsage.percentUsed > 70 
+                                  ? '#f59e0b' // orange for >70%
+                                  : '#10b981' // green for <70%
+                            }}
+                          ></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <Link href="/subscription" className="login-button" style={{ display: 'inline-block', marginTop: '0.5rem' }}>
                     View Subscription Plans
                   </Link>
@@ -747,15 +875,24 @@ export default function LessonPlanPage() {
                   onChange={handleDemoModeToggle}
                   className="demo-checkbox"
                 />
-                <span style={{ marginLeft: '0.5rem' }}>
-                  Use Demo Mode (doesn't use AI credits)
+                <span className="demo-toggle-info">
+                  Demo Mode {demoMode ? 'Enabled' : 'Disabled'} 
+                  <small style={{ display: 'block', marginTop: '4px' }}>
+                    {demoMode 
+                      ? 'Using pre-built templates (no AI credits used)' 
+                      : 'Using AI generation (consumes AI credits)'}
+                  </small>
                 </span>
               </label>
-              {!demoMode && (
-                <p className="demo-info">
-                  <strong>Note:</strong> Using AI mode will utilize 1 credit from your account ({aiCredits} remaining)
-                </p>
-              )}
+            </div>
+          )}
+          
+          {!demoMode && !hasFeature('unlimited_lesson_plans') && (
+            <div className="warning-message" style={{ marginBottom: '1rem' }}>
+              <strong>Note:</strong> You are using AI generation with limited credits. 
+              <Link href="/subscription" style={{ marginLeft: '0.5rem', color: '#0070f3' }}>
+                Upgrade to premium
+              </Link> for unlimited access.
             </div>
           )}
           
@@ -926,13 +1063,24 @@ export default function LessonPlanPage() {
         <section id="results-section" className="content-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Your Lesson Plan</h2>
-            <button 
-              onClick={handlePrint}
-              className="home-button primary"
-              style={{ marginLeft: '1rem' }}
-            >
-              Print / Save PDF
-            </button>
+            <div>
+              {isAuthenticated && (
+                <button
+                  onClick={handleSaveLessonPlan}
+                  className="home-button primary"
+                  style={{ marginRight: '0.5rem' }}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save to My Account'}
+                </button>
+              )}
+              <button 
+                onClick={handlePrint}
+                className="home-button primary"
+              >
+                Print / Save PDF
+              </button>
+            </div>
           </div>
           
           <div 
@@ -1064,31 +1212,121 @@ export default function LessonPlanPage() {
         }
         
         .demo-toggle {
-          background-color: #f0f7ff;
-          padding: 1rem;
-          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          background-color: #f9f9f9;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
           margin-bottom: 1.5rem;
-          border: 1px solid #bfdbfe;
         }
         
         .demo-toggle-label {
           display: flex;
           align-items: center;
           cursor: pointer;
-          font-weight: 500;
+          font-size: 0.95rem;
         }
         
         .demo-checkbox {
-          width: 18px;
-          height: 18px;
-          cursor: pointer;
+          margin: 0;
         }
         
-        .demo-info {
-          margin-top: 0.5rem;
-          margin-bottom: 0;
+        .demo-toggle-info {
+          margin-left: 0.5rem;
           font-size: 0.85rem;
-          color: #4b5563;
+          color: #666;
+        }
+
+        .demo-toggle {
+          display: flex;
+          align-items: center;
+          background-color: #f5f7ff;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          margin-bottom: 1.5rem;
+          border: 1px solid #e5edff;
+        }
+        
+        .demo-toggle-label {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          font-size: 0.95rem;
+          font-weight: 500;
+          color: #333;
+        }
+        
+        .demo-checkbox {
+          margin: 0;
+          width: 16px;
+          height: 16px;
+          accent-color: #0070f3;
+        }
+        
+        .demo-toggle-info {
+          margin-left: 0.5rem;
+          font-size: 0.85rem;
+          color: #666;
+        }
+        
+        /* Consistent font sizes */
+        h1, h2, h3, h4, h5, h6 {
+          font-family: var(--font-sans);
+          color: #111827;
+        }
+        
+        h1 {
+          font-size: 1.875rem;
+          font-weight: 700;
+        }
+        
+        h2 {
+          font-size: 1.5rem;
+          font-weight: 600;
+        }
+        
+        h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+        
+        p, li, button, input, textarea, select {
+          font-family: var(--font-sans);
+        }
+        
+        .warning-message {
+          background-color: #fff8e6;
+          border: 1px solid #ffefc2;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          font-size: 0.9rem;
+          color: #92400e;
+        }
+        
+        .storage-usage {
+          margin-top: 0.75rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid #e5edff;
+        }
+        
+        .storage-percentage {
+          font-size: 0.9rem;
+          color: #6b7280;
+          margin-left: 0.5rem;
+        }
+        
+        .storage-bar {
+          height: 8px;
+          background-color: #e5e7eb;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-top: 0.25rem;
+        }
+        
+        .storage-bar-fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.3s ease;
         }
       `}</style>
     </>

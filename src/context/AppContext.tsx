@@ -98,48 +98,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: Role): boolean => {
     if (!session?.user) return false;
     
+    // First check session role (from MongoDB)
     const userRole = (session.user as UserWithRole).role || 'user';
     
+    // If that fails, check localStorage (development workaround)
+    const isLocalAdmin = typeof window !== 'undefined' && 
+      localStorage.getItem('user_role') === 'admin' && 
+      localStorage.getItem('admin_email') === session.user.email;
+    
     if (role === 'admin') {
-      return userRole === 'admin';
+      return userRole === 'admin' || isLocalAdmin;
     }
     
     if (role === 'premium') {
-      return userRole === 'admin' || userRole === 'premium';
+      return userRole === 'admin' || userRole === 'premium' || isLocalAdmin;
     }
     
     return true; // Everyone is at least a basic user
   };
   
-  // Subscription helpers
+  // Subscription helpers - SINGLE EFFECT
   useEffect(() => {
-    if (session?.user) {
-      // In a real app, this would fetch subscription data from your API/database
-      // For now, we'll simulate it with some mock data
-      const mockSubscriptionInfo: SubscriptionInfo = {
-        tier: 'free',
-        expiresAt: null,
-        features: ['demo_lesson_plans', 'basic_profile'],
-        aiCreditsRemaining: 5
-      };
-      
-      // If user is an admin, give them premium features
-      if (hasRole('admin')) {
-        mockSubscriptionInfo.tier = 'premium';
-        mockSubscriptionInfo.features = [
-          'unlimited_lesson_plans',
-          'advanced_customization',
-          'admin_dashboard',
-          'export_all_formats',
-          'priority_support'
-        ];
-        mockSubscriptionInfo.aiCreditsRemaining = 999;
+    async function fetchUserSubscription() {
+      if (session?.user) {
+        try {
+          // Fetch user subscription info from the API
+          const response = await fetch('/api/user/subscription');
+          
+          if (response.ok) {
+            const data = await response.json();
+            setUserSubscription(data.subscription);
+          } else {
+            // Fallback to mock data if API fails
+            const mockSubscriptionInfo: SubscriptionInfo = {
+              tier: 'free',
+              expiresAt: null,
+              features: ['demo_lesson_plans', 'basic_profile'],
+              aiCreditsRemaining: 5
+            };
+            
+            // If user is an admin, give them premium features
+            if (hasRole('admin')) {
+              mockSubscriptionInfo.tier = 'premium';
+              mockSubscriptionInfo.features = [
+                'unlimited_lesson_plans',
+                'advanced_customization',
+                'admin_dashboard',
+                'export_all_formats',
+                'priority_support'
+              ];
+              mockSubscriptionInfo.aiCreditsRemaining = Infinity; // Truly unlimited credits for admins
+            }
+            
+            setUserSubscription(mockSubscriptionInfo);
+          }
+        } catch (error) {
+          console.error('Error fetching subscription data:', error);
+          setUserSubscription(null);
+        }
+      } else {
+        setUserSubscription(null);
       }
-      
-      setUserSubscription(mockSubscriptionInfo);
-    } else {
-      setUserSubscription(null);
     }
+    
+    fetchUserSubscription();
   }, [session]);
   
   // Get subscription info

@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 import NavBar from '@/components/NavBar';
 import SessionProvider from '@/providers/SessionProvider';
 import './globals.css';
+import './lists.css';
 
 const averageFont = Average({
   weight: '400',
@@ -33,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={averageFont.variable}>
-      <body className={averageFont.className}>
+    <html lang="en" className={`${averageFont.variable}`}>
+      <body className={`${averageFont.className}`}>
         <SessionProvider>
           <AppProvider>
             <div className="app-container">
