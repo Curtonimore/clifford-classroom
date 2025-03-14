@@ -30,16 +30,16 @@ function isAdminEmail(email: string | null | undefined): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
-// Get the base URL for NextAuth
+// Function to get the base URL for NextAuth
 function getBaseUrl() {
-  // Check for Vercel deployment URL first
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  
-  // Then check for explicit NEXTAUTH_URL
+  // Check for explicit NEXTAUTH_URL first
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL;
+  }
+  
+  // Then check for Vercel deployment URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   
   // Fallback for local development
@@ -47,8 +47,8 @@ function getBaseUrl() {
     return 'http://localhost:3000';
   }
   
-  // Final fallback
-  return 'https://clifford-classroom-racf4r0ff-curtis-cliffords-projects.vercel.app';
+  // Final fallback - use the most recent deployment URL
+  return 'https://clifford-classroom-d26ojavo4-curtis-cliffords-projects.vercel.app';
 }
 
 // Detect build environment
@@ -82,11 +82,7 @@ export const authOptions: NextAuthOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
-          redirect_uri: process.env.VERCEL_URL 
-            ? `https://${process.env.VERCEL_URL}/api/auth/callback/google`
-            : process.env.NEXTAUTH_URL 
-              ? `${process.env.NEXTAUTH_URL}/api/auth/callback/google` 
-              : 'http://localhost:3000/api/auth/callback/google'
+          redirect_uri: `${getBaseUrl()}/api/auth/callback/google`
         }
       }
     }),
