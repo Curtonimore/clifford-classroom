@@ -292,6 +292,11 @@ export default function NavBar() {
           font-size: 0.9rem; /* Smaller font size */
         }
         
+        .nav-link:hover {
+          color: var(--accent);
+          text-decoration: none;
+        }
+        
         .loading-indicator {
           display: flex;
           align-items: center;
@@ -591,6 +596,43 @@ export default function NavBar() {
           .user-name {
             display: inline-block;
           }
+        }
+        
+        /* Dropdown styles for desktop - missing previously */
+        .dropdown-content {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          background: #ffffff;
+          min-width: 200px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          border-radius: 4px;
+          visibility: hidden;
+          opacity: 0;
+          transform: translateY(-10px);
+          transition: all 0.3s ease;
+          z-index: 10;
+          padding: 0.5rem 0;
+        }
+        
+        .dropdown:hover .dropdown-content {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        .dropdown-link {
+          display: block;
+          padding: 0.75rem 1rem;
+          color: #000000;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+        
+        .dropdown-link:hover {
+          background: rgba(27, 67, 50, 0.1);
+          color: var(--accent);
         }
       `}</style>
     </nav>

@@ -6,6 +6,7 @@ import { JWT } from "next-auth/jwt";
 import { AdapterUser } from "next-auth/adapters";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import clientPromise from "./mongodb-client";
+import { BASE_URL, auth } from './config';
 
 // Define user roles and permissions
 export type Role = "user" | "premium" | "admin";
@@ -85,7 +86,21 @@ export const authOptions: NextAuthOptions = {
       
       return session;
     },
+    // Make sure the callbackUrl is properly determined based on the environment
+    async redirect({ url, baseUrl }) {
+      // If URL starts with baseUrl, it's safe to redirect
+      if (url.startsWith(baseUrl)) return url;
+      
+      // Allow redirecting to relative URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      
+      // Otherwise, redirect to the base URL
+      return baseUrl;
+    },
   },
+  // Ensure we have the correct URL regardless of environment
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };
 
 // Helper function to get the session on the server side
