@@ -830,9 +830,9 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     // Get API key from environment
     const apiKey = process.env.ANTHROPIC_API_KEY;
     
-    if (!apiKey) {
-      console.error("Claude API key not found");
-      throw new Error('Claude API key not found. Please add your ANTHROPIC_API_KEY to the .env.local file.');
+    if (!apiKey || !isValidClaudeApiKey(apiKey)) {
+      console.error("Claude API key not found or invalid");
+      throw new Error('Claude API key not found or invalid. Please add a valid ANTHROPIC_API_KEY to the .env.local file.');
     }
     
     console.log("Claude API key found, initializing client");
@@ -968,35 +968,55 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
   }
 }
 
-// Add this helper function to validate API key format
+// Update the isValidClaudeApiKey function to be more robust
 function isValidClaudeApiKey(key: string | undefined): boolean {
-  if (!key) {
-    console.log("API key is undefined or empty");
-    return false;
-  }
-  
-  if (!key.trim().startsWith('sk-ant-')) {
-    console.log(`API key has invalid prefix. Should start with 'sk-ant-', got: ${key.substring(0, 8)}...`);
-    return false;
-  }
-  
-  if (key.length <= 20) {
-    console.log("API key is too short, expected length >20 characters");
-    return false;
-  }
-  
-  // DISABLED THIS CHECK - Allow api03 keys to be used 
-  // if (key.includes('api03')) {
-  //   console.log("API key contains 'api03' substring which may cause authentication issues");
-  //   return false;
-  // }
-  
-  console.log("API key validation passed ✓");
-  return true;
+  if (!key) return false;
+  // Claude API keys start with sk-ant prefix
+  return key.startsWith('sk-ant') && key.length > 30;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("Received lesson plan generation request");
+    
+    // Parse the request body
+    const requestData = await request.json();
+    const { subject, audience, topic, time, standards, objectives, options, materials, notes } = requestData;
+    
+    // Check if Claude API is enabled
+    const useClaudeApi = process.env.USE_CLAUDE_API === 'true';
+    
+    if (!useClaudeApi) {
+      console.log("Claude API is disabled, using demo lesson plans");
+      // Return a demo lesson plan to avoid using up Claude API credits
+      return NextResponse.json({
+        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
+        fromDemo: true,
+        error: null
+      });
+    }
+    
+    // Validate Claude API key before proceeding
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey || !isValidClaudeApiKey(apiKey)) {
+      console.error("Invalid or missing Claude API key");
+      return NextResponse.json({
+        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
+        fromDemo: true,
+        error: "Invalid API key - using demo lesson plan"
+      });
+    }
+    
+    // Get the server session to check authentication
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      console.log("Unauthenticated request - returning error");
+      return NextResponse.json({
+        error: "You must be logged in to generate lesson plans."
+      }, { status: 401 });
+    }
+    
     // Add a quick response header to prevent timeouts
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();

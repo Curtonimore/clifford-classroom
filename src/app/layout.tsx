@@ -32,6 +32,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${averageFont.variable}`}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+      </head>
       <body className={`${averageFont.className}`}>
         <SessionProvider>
           <AppProvider>
@@ -47,6 +50,33 @@ export default function RootLayout({
           </AppProvider>
         </SessionProvider>
         <Analytics />
+        {/* Debug viewport element */}
+        <div id="viewport-debug" style={{
+          position: 'fixed',
+          bottom: '5px',
+          left: '5px',
+          fontSize: '10px',
+          color: '#999',
+          background: 'rgba(255,255,255,0.7)',
+          padding: '2px 5px',
+          zIndex: 9999,
+          display: 'none',
+        }}>
+        </div>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Only display in development
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+              const debugElement = document.getElementById('viewport-debug');
+              debugElement.style.display = 'block';
+              function updateViewportSize() {
+                debugElement.innerText = 'viewport: ' + window.innerWidth + 'x' + window.innerHeight;
+              }
+              window.addEventListener('resize', updateViewportSize);
+              updateViewportSize();
+            }
+          `
+        }} />
       </body>
     </html>
   );

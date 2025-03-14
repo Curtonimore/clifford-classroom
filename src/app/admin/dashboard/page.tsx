@@ -38,12 +38,34 @@ export default function AdminDashboard() {
   // State for users and UI
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
   
   // State for user editing
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Track debugging status
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    mongoStatus: 'unknown' | 'connected' | 'error';
+    mongoError: string | null;
+    apiResponses: Array<{
+      endpoint: string;
+      status: number;
+      data: any;
+      timestamp: string;
+    }>;
+    vercelEnv: string | null;
+    nodeEnv: string | null;
+  }>({
+    mongoStatus: 'unknown',
+    mongoError: null,
+    apiResponses: [],
+    vercelEnv: null,
+    nodeEnv: null
+  });
   
   useEffect(() => {
     setCurrentPath('admin', 'dashboard');
@@ -64,17 +86,33 @@ export default function AdminDashboard() {
   }, [status, hasRole]);
   
   const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
+      console.log('Admin Dashboard: Fetching users...');
       const response = await fetch('/api/admin/users');
       
+      console.log('Admin Dashboard: Fetch response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch users');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Admin Dashboard: Error response:', errorData);
+        throw new Error(errorData.error || `Failed to fetch users: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log(`Admin Dashboard: Fetched ${data.users?.length || 0} users`);
+      
+      if (!data.users || !Array.isArray(data.users)) {
+        console.error('Admin Dashboard: Invalid users data format:', data);
+        throw new Error('Invalid response format - users data is missing or not an array');
+      }
+      
       setUsers(data.users);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Admin Dashboard: Error fetching users:', error);
+      setError(error instanceof Error ? error.message : 'Error loading users. Please try again.');
       showNotification('Error loading users. Please try again.');
     } finally {
       setIsLoading(false);
@@ -216,10 +254,94 @@ export default function AdminDashboard() {
   };
   
   // Filter users based on search query
-  const filteredUsers = users.filter(user => 
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      user.name?.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.role.toLowerCase().includes(searchLower) ||
+      user.subscription?.tier.toLowerCase().includes(searchLower)
+    );
+  });
+  
+  // Function to check MongoDB connection status
+  const checkMongoConnection = async () => {
+    try {
+      const response = await fetch('/api/debug/mongo-status');
+      const data = await response.json();
+      
+      // Log the raw response for diagnosis
+      console.log('Debug: MongoDB status check response:', data);
+      
+      setDebugInfo(prev => ({
+        ...prev,
+        mongoStatus: data.connected ? 'connected' : 'error',
+        mongoError: data.error || null,
+        apiResponses: [
+          {
+            endpoint: '/api/debug/mongo-status',
+            status: response.status,
+            data,
+            timestamp: new Date().toISOString()
+          },
+          ...prev.apiResponses
+        ],
+        vercelEnv: data.vercelEnv || null,
+        nodeEnv: data.nodeEnv || null
+      }));
+      
+      return data.connected;
+    } catch (error) {
+      console.error('Debug: Error checking MongoDB connection:', error);
+      
+      setDebugInfo(prev => ({
+        ...prev,
+        mongoStatus: 'error',
+        mongoError: error instanceof Error ? error.message : 'Unknown error',
+        apiResponses: [
+          {
+            endpoint: '/api/debug/mongo-status',
+            status: 500,
+            data: { error: error instanceof Error ? error.message : 'Unknown error' },
+            timestamp: new Date().toISOString()
+          },
+          ...prev.apiResponses
+        ]
+      }));
+      
+      return false;
+    }
+  };
+  
+  if (error) {
+    return (
+      <div className="admin-error">
+        <h1>Error Loading Admin Dashboard</h1>
+        <p className="error-message">{error}</p>
+        <button onClick={fetchUsers} className="retry-button">
+          Retry Loading Users
+        </button>
+        <style jsx>{`
+          .admin-error {
+            padding: 2rem;
+            text-align: center;
+          }
+          .error-message {
+            color: #e53e3e;
+            margin: 1rem 0;
+          }
+          .retry-button {
+            background-color: var(--accent);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+          }
+        `}</style>
+      </div>
+    );
+  }
   
   if (isLoading) {
     return (
@@ -288,7 +410,23 @@ export default function AdminDashboard() {
                   <div className="user-header-cell user-actions">Actions</div>
                 </div>
                 
-                {filteredUsers.length > 0 ? (
+                {isLoading ? (
+                  <div className="users-loading">
+                    <div className="spinner"></div>
+                    <p>Loading users...</p>
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="no-users-found">
+                    <p>No users found matching your search.</p>
+                    {users.length === 0 && (
+                      <div className="empty-state">
+                        <p>There are no users in the database yet.</p>
+                        <p>You may need to check your MongoDB connection in the .env file.</p>
+                        <button onClick={fetchUsers} className="retry-button">Refresh</button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
                   filteredUsers.map(user => (
                     <div key={user._id} className="user-row">
                       <div className="user-cell user-avatar">
@@ -354,10 +492,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))
-                ) : (
-                  <div className="no-results">
-                    <p>No users found matching your search.</p>
-                  </div>
                 )}
               </div>
             </div>
@@ -452,6 +586,124 @@ export default function AdminDashboard() {
                     <div className="settings-cell">All formats</div>
                   </div>
                 </div>
+              </div>
+              
+              <div className="settings-section">
+                <h3>MongoDB Connection</h3>
+                <div className="debug-actions">
+                  <button 
+                    onClick={checkMongoConnection}
+                    className="debug-button"
+                  >
+                    Check MongoDB Connection
+                  </button>
+                  <button 
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="debug-toggle"
+                  >
+                    {showDebug ? 'Hide Debug Info' : 'Show Debug Info'}
+                  </button>
+                </div>
+                
+                {showDebug && (
+                  <div className="debug-panel">
+                    <h4>Debug Information</h4>
+                    <div className="debug-info">
+                      <div className="debug-item">
+                        <span className="debug-label">MongoDB Status:</span>
+                        <span className={`debug-value status-${debugInfo.mongoStatus}`}>
+                          {debugInfo.mongoStatus === 'connected' ? 'Connected ✓' : 
+                           debugInfo.mongoStatus === 'error' ? 'Error ✗' : 'Unknown ?'}
+                        </span>
+                      </div>
+                      
+                      {debugInfo.mongoError && (
+                        <div className="debug-item">
+                          <span className="debug-label">Error:</span>
+                          <span className="debug-value error">{debugInfo.mongoError}</span>
+                        </div>
+                      )}
+                      
+                      <div className="debug-item">
+                        <span className="debug-label">Vercel Environment:</span>
+                        <span className="debug-value">{debugInfo.vercelEnv || 'Not running in Vercel'}</span>
+                      </div>
+                      
+                      <div className="debug-item">
+                        <span className="debug-label">Node Environment:</span>
+                        <span className="debug-value">{debugInfo.nodeEnv || 'Unknown'}</span>
+                      </div>
+                      
+                      <div className="debug-item">
+                        <span className="debug-label">Session Status:</span>
+                        <span className="debug-value">{status}</span>
+                      </div>
+                      
+                      <div className="debug-item">
+                        <span className="debug-label">User Role:</span>
+                        <span className="debug-value">{session?.user?.role || 'None'}</span>
+                      </div>
+                      
+                      <div className="debug-item">
+                        <span className="debug-label">Users Count:</span>
+                        <span className="debug-value">{users.length}</span>
+                      </div>
+                      
+                      <h4>API Call History</h4>
+                      {debugInfo.apiResponses.length > 0 ? (
+                        <div className="api-calls">
+                          {debugInfo.apiResponses.map((call, index) => (
+                            <div key={index} className="api-call">
+                              <div className="api-call-header">
+                                <div className="api-endpoint">{call.endpoint}</div>
+                                <div className={`api-status status-${call.status < 400 ? 'success' : 'error'}`}>
+                                  {call.status}
+                                </div>
+                                <div className="api-timestamp">{new Date(call.timestamp).toLocaleTimeString()}</div>
+                              </div>
+                              <pre className="api-data">{JSON.stringify(call.data, null, 2)}</pre>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>No API calls recorded yet.</p>
+                      )}
+                      
+                      <div className="debug-actions">
+                        <button 
+                          onClick={fetchUsers} 
+                          className="debug-button"
+                        >
+                          Retry Fetch Users
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setDebugInfo({
+                              mongoStatus: 'unknown',
+                              mongoError: null,
+                              apiResponses: [],
+                              vercelEnv: null,
+                              nodeEnv: null
+                            });
+                          }} 
+                          className="debug-button clear"
+                        >
+                          Clear Debug Info
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="admin-setup-info">
+                      <h4>Admin Setup</h4>
+                      <p>If you're experiencing issues with the admin dashboard, try the following:</p>
+                      <ol>
+                        <li>Visit <Link href="/force-admin" className="setup-link">/force-admin</Link> to verify and fix admin access</li>
+                        <li>Ensure your MongoDB connection string is correctly set up in your environment variables</li>
+                        <li>Check that the <code>ADMIN_EMAILS</code> environment variable includes your email</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -783,6 +1035,23 @@ export default function AdminDashboard() {
           font-size: 0.85rem;
         }
         
+        .admin-error {
+          padding: 2rem;
+          text-align: center;
+        }
+        .error-message {
+          color: #e53e3e;
+          margin: 1rem 0;
+        }
+        .retry-button {
+          background-color: var(--accent);
+          color: white;
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
         @media (max-width: 1024px) {
           .admin-container {
             flex-direction: column;
@@ -820,6 +1089,170 @@ export default function AdminDashboard() {
             width: auto;
             min-width: 0;
           }
+        }
+        
+        .debug-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin: 1rem 0;
+        }
+        
+        .debug-button, .debug-toggle {
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .debug-button {
+          background-color: #3b82f6;
+          color: white;
+          border: none;
+        }
+        
+        .debug-button:hover {
+          background-color: #2563eb;
+        }
+        
+        .debug-button.clear {
+          background-color: #ef4444;
+        }
+        
+        .debug-button.clear:hover {
+          background-color: #dc2626;
+        }
+        
+        .debug-toggle {
+          background-color: #f3f4f6;
+          border: 1px solid #d1d5db;
+          color: #4b5563;
+        }
+        
+        .debug-toggle:hover {
+          background-color: #e5e7eb;
+        }
+        
+        .debug-panel {
+          margin-top: 1rem;
+          padding: 1rem;
+          background-color: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+        }
+        
+        .debug-panel h4 {
+          margin-top: 1rem;
+          margin-bottom: 0.75rem;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+        
+        .debug-panel h4:first-child {
+          margin-top: 0;
+        }
+        
+        .debug-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        
+        .debug-item {
+          display: flex;
+          gap: 0.5rem;
+        }
+        
+        .debug-label {
+          font-weight: 500;
+          color: #64748b;
+          min-width: 150px;
+        }
+        
+        .debug-value {
+          font-family: monospace;
+        }
+        
+        .status-connected, .status-success {
+          color: #16a34a;
+        }
+        
+        .status-error {
+          color: #dc2626;
+        }
+        
+        .status-unknown {
+          color: #9ca3af;
+        }
+        
+        .debug-value.error {
+          color: #dc2626;
+          word-break: break-all;
+        }
+        
+        .api-calls {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          max-height: 400px;
+          overflow-y: auto;
+        }
+        
+        .api-call {
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          overflow: hidden;
+        }
+        
+        .api-call-header {
+          display: flex;
+          justify-content: space-between;
+          padding: 0.5rem 0.75rem;
+          background-color: #f1f5f9;
+          font-size: 0.875rem;
+        }
+        
+        .api-endpoint {
+          font-weight: 500;
+          color: #0f172a;
+        }
+        
+        .api-data {
+          padding: 0.75rem;
+          margin: 0;
+          background-color: #ffffff;
+          font-family: monospace;
+          font-size: 0.75rem;
+          overflow-x: auto;
+          white-space: pre-wrap;
+        }
+        
+        .admin-setup-info {
+          margin-top: 1.5rem;
+          padding: 1rem;
+          background-color: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 6px;
+        }
+        
+        .admin-setup-info ol {
+          margin-top: 0.5rem;
+          padding-left: 1.5rem;
+        }
+        
+        .admin-setup-info li {
+          margin-bottom: 0.5rem;
+        }
+        
+        .setup-link {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        
+        .setup-link:hover {
+          color: #1e40af;
         }
       `}</style>
     </>

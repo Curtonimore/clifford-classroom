@@ -33,6 +33,8 @@ interface AppContextType {
   // Auth helper functions
   logout: () => Promise<void>;
   hasRole: (role: Role) => boolean;
+  isAuthenticated: boolean;
+  authStatus: string;
   
   // Subscription related functions
   userSubscription: SubscriptionInfo | null;
@@ -57,6 +59,8 @@ const AppContext = createContext<AppContextType>({
   
   logout: async () => {},
   hasRole: () => false,
+  isAuthenticated: false,
+  authStatus: '',
   
   userSubscription: null,
   getUserSubscription: () => null,
@@ -67,7 +71,7 @@ const AppContext = createContext<AppContextType>({
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // Get session from Auth.js
-  const { data: session } = useSession();
+  const { data: session, status: authStatus } = useSession();
   
   // Navigation state
   const [currentSection, setCurrentSection] = useState('');
@@ -82,6 +86,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Subscription state
   const [userSubscription, setUserSubscription] = useState<SubscriptionInfo | null>(null);
   
+  // Authentication state for UI
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  // Update authentication state when session changes
+  useEffect(() => {
+    if (authStatus === 'authenticated' && session?.user) {
+      setIsAuthenticated(true);
+      // Also show a notification when user logs in successfully
+      showNotification(`Welcome back, ${session.user.name || 'User'}!`);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, [authStatus, session]);
+  
   // Set both section and subsection at once
   const setCurrentPath = (section: string, subsection: string) => {
     setCurrentSection(section);
@@ -92,11 +110,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await signOut({ callbackUrl: '/' });
     showNotification('You have been logged out');
+    // Explicitly update our local state
+    setIsAuthenticated(false);
+    setUserSubscription(null);
   };
   
-  // Role check helper
+  // Role check helper - improved version
   const hasRole = (role: Role): boolean => {
-    if (!session?.user) return false;
+    if (!session?.user || authStatus !== 'authenticated') return false;
     
     // First check session role (from MongoDB)
     const userRole = (session.user as UserWithRole).role || 'user';
@@ -105,6 +126,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const isLocalAdmin = typeof window !== 'undefined' && 
       localStorage.getItem('user_role') === 'admin' && 
       localStorage.getItem('admin_email') === session.user.email;
+    
+    // Log status for debugging
+    console.log('Auth status:', authStatus);
+    console.log('User role:', userRole);
+    console.log('Session:', session?.user);
     
     if (role === 'admin') {
       return userRole === 'admin' || isLocalAdmin;
@@ -117,18 +143,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true; // Everyone is at least a basic user
   };
   
-  // Subscription helpers - SINGLE EFFECT
+  // Subscription helpers - Improved with debugging
   useEffect(() => {
     async function fetchUserSubscription() {
-      if (session?.user) {
+      console.log('Auth status in subscription effect:', authStatus);
+      console.log('Session in subscription effect:', session);
+      
+      if (authStatus === 'authenticated' && session?.user) {
         try {
           // Fetch user subscription info from the API
           const response = await fetch('/api/user/subscription');
           
           if (response.ok) {
             const data = await response.json();
+            console.log('Subscription data from API:', data);
             setUserSubscription(data.subscription);
           } else {
+            console.warn('API response not OK:', response.status);
             // Fallback to mock data if API fails
             const mockSubscriptionInfo: SubscriptionInfo = {
               tier: 'free',
@@ -162,7 +193,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     
     fetchUserSubscription();
-  }, [session]);
+  }, [authStatus, session]);
   
   // Get subscription info
   const getUserSubscription = (): SubscriptionInfo | null => {
@@ -230,6 +261,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       logout,
       hasRole,
+      isAuthenticated,
+      authStatus,
       
       userSubscription,
       getUserSubscription,
@@ -238,6 +271,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
       getAICreditsRemaining,
     }}>
       {children}
+      
+      {/* Add global notification display */}
+      {notification && (
+        <div className="notification-container">
+          <div className="notification">
+            {notification}
+            <button onClick={clearNotification} className="notification-close">×</button>
+          </div>
+          <style jsx>{`
+            .notification-container {
+              position: fixed;
+              bottom: 20px;
+              right: 20px;
+              z-index: 1000;
+            }
+            .notification {
+              background-color: var(--accent, #1B4332);
+              color: white;
+              padding: 12px 20px;
+              border-radius: 4px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+              display: flex;
+              align-items: center;
+              max-width: 400px;
+            }
+            .notification-close {
+              background: none;
+              border: none;
+              color: white;
+              font-size: 20px;
+              margin-left: 15px;
+              cursor: pointer;
+            }
+          `}</style>
+        </div>
+      )}
     </AppContext.Provider>
   );
 }

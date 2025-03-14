@@ -29,11 +29,27 @@
   }
 }
 
+/* Force height/width for better UI stability */
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
   color: #000000;
   background: #ffffff;
   font-family: var(--font-average, 'Average', serif);
   line-height: 1.5;
+  min-height: 100%;
+  /* Prevent content shifts and maintain layout stability */
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+  /* Force hardware acceleration to reduce visual glitches */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent content shifts when scrollbars appear */
+  padding-left: calc(100vw - 100%);
 }
 
 /* Make sure all elements inherit their text color properly */
@@ -43,6 +59,24 @@ body {
   padding: 0;
   color: inherit;
   font-family: inherit;
+}
+
+/* Prevent layout shifts on hover/focus state changes */
+a, button, .nav-item, .dropdown, .card, .topic-card {
+  position: relative;
+  /* Prevent jumps by reserving space for potential borders/effects */
+  border: 1px solid transparent;
+}
+
+a:hover, button:hover, a:focus, button:focus {
+  /* Use transform instead of margin/padding changes for hover effects */
+  outline: none;
+}
+
+/* Stabilize the hover effects by using transform instead of dimension changes */
+.card:hover, .topic-card:hover, .button:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease-out;
 }
 
 /* Set default colors */
@@ -181,8 +215,14 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  width: 100%;
+  position: relative;
+  /* Add will-change to hint at the browser to optimize for changes */
+  will-change: transform;
+  /* Prevent any shifts when content changes */
   overflow-x: hidden;
+  /* Ensure content stays within bounds */
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Common UI components */
@@ -740,10 +780,16 @@ p, span {
 /* Content containers */
 .content-container {
   flex: 1;
-  padding: 1rem;
-  max-width: 1200px;
-  width: 100%;
+  padding: 20px;
   margin: 0 auto;
+  width: 100%;
+  max-width: 1600px;
+  /* Stabilize the container position */
+  position: relative;
+  z-index: 1;
+  /* Prevent visual glitches with hardware acceleration */
+  transform: translateZ(0);
+  /* Prevent unwanted horizontal scrolling */
   overflow-x: hidden;
 }
 

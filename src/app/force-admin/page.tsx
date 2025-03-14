@@ -1,174 +1,265 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useAppContext } from '@/context/AppContext';
+import Link from 'next/link';
 
 export default function ForceAdminPage() {
-  const router = useRouter();
-  const { data: session, update } = useSession();
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+  const { data: session, status } = useSession();
+  const { showNotification } = useAppContext();
   
-  useEffect(() => {
-    async function setupAdmin() {
-      try {
-        // Step 1: Log current status
-        console.log('Current session:', session);
-        setMessage('Setting up admin access...');
-        
-        // Step 2: Store admin role in localStorage
-        localStorage.setItem('user_role', 'admin');
-        if (session?.user?.email) {
-          localStorage.setItem('admin_email', session.user.email);
-        }
-        
-        // Step 3: Try to update the session
-        if (session) {
-          try {
-            await update({ role: 'admin' });
-            console.log('Session updated');
-          } catch (err) {
-            console.error('Error updating session:', err);
-          }
-        }
-        
-        // Step 4: Set success status
-        setStatus('success');
-        setMessage('Admin access granted! Redirecting to profile page...');
-        
-        // Step 5: Redirect after a delay
-        setTimeout(() => {
-          router.push('/profile');
-        }, 2000);
-      } catch (error) {
-        console.error('Error setting up admin:', error);
-        setStatus('error');
-        setMessage('Error setting up admin access. Check console for details.');
-      }
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<{
+    success?: boolean;
+    message?: string;
+    error?: string;
+  } | null>(null);
+  
+  const makeAdmin = async () => {
+    if (!session?.user) {
+      showNotification('You must be logged in to use this feature');
+      return;
     }
     
-    setupAdmin();
-  }, [session, update, router]);
+    setIsLoading(true);
+    setResult(null);
+    
+    try {
+      const response = await fetch('/api/admin/make-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          force: process.env.NODE_ENV === 'development'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResult({
+          success: true,
+          message: data.message || 'Admin role assigned successfully'
+        });
+        showNotification('Admin role assigned! Sign out and back in to apply changes.');
+      } else {
+        setResult({
+          success: false,
+          error: data.error || 'Failed to assign admin role'
+        });
+        showNotification('Error assigning admin role');
+      }
+    } catch (error) {
+      console.error('Error making admin:', error);
+      setResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+      showNotification('Error assigning admin role');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Automatically check admin status on page load
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      console.log('Force Admin Page: User authenticated, checking admin status');
+      
+      // Check if user email is in ADMIN_EMAILS (done on client side for convenience)
+      const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(email => email.trim().toLowerCase()) || [];
+      const isAllowedAdmin = adminEmails.includes(session.user.email?.toLowerCase() || '');
+      
+      console.log('Force Admin Page: Admin check', {
+        configuredAdmins: adminEmails,
+        userEmail: session.user.email?.toLowerCase(),
+        isAllowedAdmin
+      });
+      
+      // If user should be an admin but isn't currently, offer to make them admin
+      if (isAllowedAdmin) {
+        console.log('Force Admin Page: User is allowed to be admin');
+      }
+    }
+  }, [status, session]);
+  
+  if (status === 'loading') {
+    return (
+      <div className="admin-setup-container">
+        <h1>Checking Authentication...</h1>
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+  
+  if (status === 'unauthenticated') {
+    return (
+      <div className="admin-setup-container">
+        <h1>Authentication Required</h1>
+        <p>You need to be logged in to access this page.</p>
+        <Link href="/api/auth/signin" className="auth-button">
+          Sign In
+        </Link>
+      </div>
+    );
+  }
   
   return (
-    <div className="admin-force-container">
-      <div className="admin-force-card">
-        <h1>Force Admin Setup</h1>
-        <p>This page automatically attempts to grant admin access through multiple methods.</p>
-        
-        <div className={`status-message ${status}`}>
-          {message}
+    <div className="admin-setup-container">
+      <h1>Admin Access Setup</h1>
+      
+      <div className="user-info">
+        <p><strong>Current User:</strong> {session?.user?.name}</p>
+        <p><strong>Email:</strong> {session?.user?.email}</p>
+        <p><strong>Current Role:</strong> {session?.user?.role || 'user'}</p>
+      </div>
+      
+      {result && (
+        <div className={`result-box ${result.success ? 'success' : 'error'}`}>
+          {result.success ? (
+            <div>
+              <h3>Success!</h3>
+              <p>{result.message}</p>
+              <div className="actions">
+                <Link href="/api/auth/signout" className="auth-button">
+                  Sign Out
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h3>Error</h3>
+              <p>{result.error}</p>
+            </div>
+          )}
         </div>
+      )}
+      
+      <div className="setup-actions">
+        <button 
+          onClick={makeAdmin} 
+          disabled={isLoading || result?.success}
+          className="admin-button"
+        >
+          {isLoading ? 'Processing...' : 'Assign Admin Role'}
+        </button>
         
-        {status === 'success' && (
-          <div className="success-actions">
-            <button 
-              onClick={() => router.push('/profile')}
-              className="action-button"
-            >
-              Go to Profile Page
-            </button>
-            <button 
-              onClick={() => router.push('/admin')}
-              className="action-button"
-            >
-              Go to Admin Dashboard
-            </button>
-          </div>
-        )}
-        
-        {status === 'error' && (
-          <div className="error-actions">
-            <button 
-              onClick={() => window.location.reload()}
-              className="action-button"
-            >
-              Try Again
-            </button>
-            <button 
-              onClick={() => router.push('/admin/setup-local')}
-              className="action-button"
-            >
-              Go to Manual Setup
-            </button>
-          </div>
-        )}
+        <Link href="/" className="cancel-link">
+          Return to Home
+        </Link>
+      </div>
+      
+      <div className="info-box">
+        <h3>How This Works</h3>
+        <p>This page will set your account as an admin if your email matches the configured admin emails in the environment variables.</p>
+        <p>After becoming an admin, sign out and sign back in to apply the changes.</p>
+        <p>You will then have access to the admin dashboard and other administrator features.</p>
       </div>
       
       <style jsx>{`
-        .admin-force-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 100vh;
-          padding: 2rem;
-          background-color: #f7fafc;
-        }
-        
-        .admin-force-card {
-          width: 100%;
-          max-width: 500px;
+        .admin-setup-container {
+          max-width: 800px;
+          margin: 2rem auto;
           padding: 2rem;
           background-color: white;
           border-radius: 8px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          text-align: center;
         }
         
         h1 {
-          color: #2d3748;
-          margin-bottom: 1rem;
-        }
-        
-        p {
-          color: #4a5568;
+          color: var(--accent, #1B4332);
           margin-bottom: 1.5rem;
         }
         
-        .status-message {
-          margin: 1.5rem 0;
+        .user-info {
+          background-color: #f8f9fa;
           padding: 1rem;
           border-radius: 4px;
+          margin-bottom: 2rem;
+        }
+        
+        .setup-actions {
+          display: flex;
+          gap: 1rem;
+          margin: 2rem 0;
+        }
+        
+        .admin-button {
+          background-color: var(--accent, #1B4332);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          cursor: pointer;
           font-weight: 500;
         }
         
-        .idle {
-          background-color: #ebf8ff;
-          color: #2b6cb0;
+        .admin-button:disabled {
+          background-color: #cccccc;
+          cursor: not-allowed;
+        }
+        
+        .auth-button {
+          display: inline-block;
+          background-color: #4285f4;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          text-decoration: none;
+          font-weight: 500;
+        }
+        
+        .cancel-link {
+          display: inline-block;
+          color: #666;
+          padding: 0.75rem 1.5rem;
+          text-decoration: none;
+        }
+        
+        .result-box {
+          padding: 1rem;
+          border-radius: 4px;
+          margin: 1rem 0;
         }
         
         .success {
-          background-color: #f0fff4;
-          color: #2f855a;
+          background-color: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
         }
         
         .error {
-          background-color: #fff5f5;
-          color: #c53030;
+          background-color: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
         }
         
-        .success-actions, .error-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          margin-top: 1.5rem;
-        }
-        
-        .action-button {
-          padding: 0.75rem 1.5rem;
-          background-color: #4299e1;
-          color: white;
-          border: none;
+        .info-box {
+          background-color: #e7f5ff;
+          padding: 1rem;
           border-radius: 4px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background-color 0.2s;
+          margin-top: 2rem;
         }
         
-        .action-button:hover {
-          background-color: #3182ce;
+        .actions {
+          margin-top: 1rem;
+        }
+        
+        .loading-spinner {
+          border: 4px solid rgba(0, 0, 0, 0.1);
+          border-radius: 50%;
+          border-top: 4px solid var(--accent, #1B4332);
+          width: 40px;
+          height: 40px;
+          animation: spin 2s linear infinite;
+          margin: 2rem auto;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>

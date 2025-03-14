@@ -18,17 +18,23 @@ const nextConfig = {
     // number of pages that should be kept simultaneously without being disposed
     pagesBufferLength: 4,
   },
-  // Increase memory limit for builds
+  // Better memory management for builds
   experimental: {
-    // Reduce memory usage during builds
+    // Disable CSS optimization to reduce memory usage during builds
     optimizeCss: false,
-    // Turn off features that might cause issues
-    scrollRestoration: false,
+    // Enable scroll restoration for better user experience
+    scrollRestoration: true,
     // Simplify build process
     esmExternals: 'loose',
+    // Fix for turbotrace issues - disabling
+    turbotrace: false,
+    // Improve stability of app router
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
-  // Keep output simple for debugging
-  output: process.env.VERCEL ? undefined : 'standalone',
+  // Change to export for static deployment
+  output: process.env.STATIC_EXPORT ? 'export' : 'standalone',
   // Improve logging
   logging: {
     fetches: {
@@ -50,16 +56,38 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   swcMinify: true,
-  // Increase memory limit for webpack
+  // Optimize webpack configuration for stability
   webpack: (config, { dev, isServer }) => {
+    // Fix "self is not defined" error
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    
     // Optimize for development
     if (dev) {
-      // Reduce the number of parallel processes
-      config.parallelism = 1;
-      
-      // Add source maps in development
+      // Configure for development performance
       config.devtool = 'eval-source-map';
+    } else {
+      // Production optimizations
+      config.optimization = {
+        ...config.optimization,
+        // Disable splitChunks for now due to "self is not defined" error
+        splitChunks: isServer ? false : {
+          chunks: 'all',
+          // Simpler config to avoid "self is not defined" error
+          minSize: 20000,
+          maxSize: 244000,
+        },
+      };
     }
+    
+    // Improve stability by reducing parallel processing
+    config.parallelism = 4;
     
     return config;
   },
@@ -68,17 +96,31 @@ const nextConfig = {
     // Will only be available on the server
     timeoutMs: 60000, // 60 seconds
   },
-  // Disable React strict mode temporarily if crashes persist
-  reactStrictMode: false,
-  // Increase output buffer size
-  experimental: {
-    outputFileTracingExcludes: {
-      '*': [
-        'node_modules/@swc/core-linux-x64-gnu',
-        'node_modules/@swc/core-linux-x64-musl',
-        'node_modules/@esbuild/linux-x64',
-      ],
-    },
+  // Handle redirect and rewrites for better stability
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+    ];
   },
 };
 

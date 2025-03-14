@@ -3,8 +3,9 @@
 import { useAppContext } from '@/context/AppContext';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 // Define updated navigation structure based on the prompts
 const navItems = [
@@ -65,15 +66,52 @@ const navItems = [
 ];
 
 export default function NavBar() {
-  const { logout, showNotification, hasRole } = useAppContext();
+  const { logout, showNotification, hasRole, isAuthenticated, authStatus } = useAppContext();
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loginInProgress, setLoginInProgress] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   
   const handleLogin = () => {
+    setLoginInProgress(true);
     signIn('google', { callbackUrl: '/' });
   };
   
   const isAdmin = hasRole('admin');
+  
+  // Add debugging output
+  useEffect(() => {
+    console.log('NavBar Auth Status:', authStatus);
+    console.log('NavBar Session Status:', status);
+    console.log('NavBar Session Data:', session);
+    console.log('isAuthenticated:', isAuthenticated);
+  }, [authStatus, status, session, isAuthenticated]);
+  
+  // Close mobile menu when changing routes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [router]);
+  
+  // Close dropdowns when clicking outside nav
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Handle dropdown toggle
+  const handleDropdownToggle = (title: string) => {
+    setActiveDropdown(activeDropdown === title ? null : title);
+  };
   
   // If user is admin, add Admin Dashboard to the navigation items
   const displayNavItems = isAdmin ? [
@@ -86,7 +124,7 @@ export default function NavBar() {
   ] : navItems;
   
   return (
-    <nav className="navbar">
+    <nav className="navbar" ref={navRef}>
       <div className="navbar-container">
         <div className="navbar-logo">
           <Link href="/" className="logo-link">
@@ -114,14 +152,28 @@ export default function NavBar() {
         <div className={`navbar-links ${mobileMenuOpen ? 'open' : ''}`}>
           <ul className="nav-menu">
             {displayNavItems.map((item) => (
-              <li key={item.path} className={item.subItems.length > 0 ? 'nav-item dropdown' : 'nav-item'}>
+              <li 
+                key={item.path} 
+                className={`
+                  nav-item 
+                  ${item.subItems.length > 0 ? 'dropdown' : ''} 
+                  ${activeDropdown === item.title ? 'active' : ''}
+                `}
+                onMouseEnter={() => item.subItems.length > 0 && setActiveDropdown(item.title)}
+                onMouseLeave={() => item.subItems.length > 0 && setActiveDropdown(null)}
+              >
                 <Link href={item.path} className="nav-link">
                   {item.title}
                 </Link>
                 {item.subItems.length > 0 && (
                   <div className="dropdown-content">
                     {item.subItems.map((subItem) => (
-                      <Link key={subItem.path} href={subItem.path} className="dropdown-link">
+                      <Link 
+                        key={subItem.path} 
+                        href={subItem.path} 
+                        className="dropdown-link"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
                         {subItem.title}
                       </Link>
                     ))}
@@ -133,13 +185,13 @@ export default function NavBar() {
           
           {/* Right side items */}
           <div className="navbar-right">
-            {status === 'loading' ? (
+            {status === 'loading' || loginInProgress ? (
               <div className="loading-indicator">
                 <span className="loading-dot"></span>
                 <span className="loading-dot"></span>
                 <span className="loading-dot"></span>
               </div>
-            ) : session ? (
+            ) : session?.user ? (
               <div className="user-menu dropdown">
                 <button className="nav-link user-button">
                   <div className="user-info">
@@ -212,10 +264,11 @@ export default function NavBar() {
           display: flex;
           justify-content: flex-start;
           align-items: center;
-          padding: 0.75rem 0.5rem; /* Reduced horizontal padding */
+          padding: 0.75rem 1rem; /* Increased padding */
           max-width: 100%;
           margin: 0;
           height: 70px;
+          position: relative; /* Ensure positioned context for dropdowns */
         }
         
         .navbar-logo {
@@ -277,24 +330,45 @@ export default function NavBar() {
           align-items: center;
           height: 100%;
           white-space: nowrap; /* Prevent text wrapping */
+          /* Add fixed height to prevent layout jumps */
+          min-height: 40px;
         }
         
         .nav-link {
           display: flex;
           align-items: center;
-          padding: 0 0.3rem; /* Reduced horizontal padding */
+          padding: 0 0.75rem; /* Increased padding for better clickability */
           color: #000000;
           text-decoration: none;
           white-space: nowrap;
           border: none;
           background: none;
           height: 100%;
-          font-size: 0.9rem; /* Smaller font size */
+          min-height: 40px; /* Ensure minimum height for stability */
+          font-size: 0.9rem;
+          position: relative; /* For hover indicator */
         }
         
         .nav-link:hover {
           color: var(--accent);
           text-decoration: none;
+        }
+        
+        /* Add hover indicator for better user feedback */
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 2px;
+          background-color: var(--accent, #1B4332);
+          transition: width 0.2s ease;
+        }
+        
+        .nav-link:hover::after {
+          width: 70%;
         }
         
         .loading-indicator {
@@ -415,9 +489,9 @@ export default function NavBar() {
         }
         
         .user-dropdown {
+          right: 0;
+          left: auto;
           width: 240px;
-          padding: 0;
-          overflow: hidden;
         }
         
         .dropdown-header {
@@ -528,7 +602,7 @@ export default function NavBar() {
           
           .navbar-links {
             position: absolute;
-            top: 100%;
+            top: 70px; /* Match height of navbar-container exactly */
             left: 0;
             right: 0;
             background: #ffffff;
@@ -540,7 +614,7 @@ export default function NavBar() {
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             z-index: 50;
             overflow-y: auto; /* Allow vertical scrolling if needed */
-            max-height: 80vh; /* Limit height to avoid covering entire screen */
+            max-height: calc(100vh - 70px); /* Use calc to ensure not to exceed viewport */
           }
           
           .navbar-links.open {
@@ -576,6 +650,7 @@ export default function NavBar() {
             padding-left: 1rem;
             background: transparent;
             width: 100%;
+            transition: none;
           }
           
           .dropdown:hover .dropdown-content {
@@ -596,6 +671,30 @@ export default function NavBar() {
           .user-name {
             display: inline-block;
           }
+          
+          /* Reset the dropdown padding/margin on mobile */
+          .nav-item.dropdown {
+            padding-bottom: 0;
+            margin-bottom: 0;
+          }
+          
+          /* Explicitly remove the ::before pseudo-element on mobile */
+          .dropdown-content::before {
+            display: none;
+          }
+          
+          /* Reset hover styles on mobile */
+          .nav-link::after {
+            display: none;
+          }
+          
+          /* Use display property for dropdown visibility on mobile */
+          .dropdown:hover .dropdown-content,
+          .dropdown-content:hover {
+            display: block;
+            visibility: visible;
+            opacity: 1;
+          }
         }
         
         /* Dropdown styles for desktop - missing previously */
@@ -611,28 +710,138 @@ export default function NavBar() {
           visibility: hidden;
           opacity: 0;
           transform: translateY(-10px);
-          transition: all 0.3s ease;
+          transition: visibility 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
           z-index: 10;
           padding: 0.5rem 0;
+          pointer-events: auto; /* Allow pointer events to ensure hover works */
+          display: block; /* Always keep element in DOM to prevent disappearing */
+          transition-delay: 0s; /* No delay for initial hiding */
+        }
+        
+        /* Create a better hover bridge between nav item and dropdown */
+        .dropdown-content::before {
+          content: '';
+          position: absolute;
+          height: 20px; /* Increased from 15px */
+          width: 100%;
+          top: -20px; /* Increased from -15px */
+          left: 0;
+        }
+        
+        /* Add this new style to create hover affordance */
+        .nav-item.dropdown {
+          padding-bottom: 20px; /* This creates space for the hover bridge */
+          margin-bottom: -20px; /* This offsets the padding so visual appearance is the same */
+        }
+        
+        /* Improved dropdown link styles */
+        .dropdown-link {
+          display: block;
+          padding: 0.5rem 1rem;
+          text-decoration: none;
+          color: #000000;
+          transition: background-color 0.2s ease;
+          white-space: nowrap;
+          border: none;
+          background: none;
+          text-align: left;
+          width: 100%;
+          font-size: 0.9rem;
+        }
+        
+        .dropdown-link:hover {
+          background-color: #f3f4f6;
+          color: var(--accent);
         }
         
         .dropdown:hover .dropdown-content {
           visibility: visible;
           opacity: 1;
           transform: translateY(0);
+          pointer-events: auto; /* Re-enable pointer events on hover */
+          transition-delay: 0s, 0s, 0s; /* No delay for showing */
         }
         
+        /* Special handling for user dropdown menu */
+        .user-dropdown {
+          right: 0;
+          left: auto;
+          width: 240px;
+        }
+        
+        /* Keep dropdown visible when hovering over dropdown content */
+        .dropdown-content:hover {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        
+        /* Add styles for active dropdown */
+        .dropdown.active .dropdown-content {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        
+        /* Add a pointer cursor to the dropdown items */
+        .nav-item.dropdown {
+          cursor: pointer;
+        }
+        
+        /* Add a transition delay when leaving the dropdown to prevent it from closing too quickly */
+        .dropdown-content {
+          transition-delay: 0s, 0s, 0s; /* Initial delay values */
+        }
+        
+        .nav-item.dropdown:hover .dropdown-content {
+          transition-delay: 0s, 0s, 0s; /* No delay for showing */
+        }
+        
+        .nav-item.dropdown:not(:hover) .dropdown-content {
+          transition-delay: 0.3s, 0.3s, 0.3s; /* Add delay when hiding */
+        }
+        
+        /* Make the dropdown links display as block for better touch targets */
         .dropdown-link {
           display: block;
           padding: 0.75rem 1rem;
-          color: #000000;
           text-decoration: none;
-          transition: all 0.2s ease;
+          color: #000000;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          white-space: nowrap;
+          border: none;
+          background: none;
+          text-align: left;
+          width: 100%;
+          font-size: 0.9rem;
+          border-radius: 2px;
         }
         
-        .dropdown-link:hover {
-          background: rgba(27, 67, 50, 0.1);
-          color: var(--accent);
+        /* Add specific styles for active state dropdown */
+        .dropdown.active > .nav-link::after {
+          width: 70%; /* Match hover state */
+        }
+        
+        /* Force dropdown to remain open when clicking on dropdown content */
+        .dropdown.active .dropdown-content,
+        .dropdown-content:active {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        
+        /* Increase dropdown content z-index to ensure it stays on top */
+        .dropdown-content {
+          z-index: 60;
+        }
+        
+        /* Add a slight background color to the active dropdown parent for additional visual feedback */
+        .dropdown.active > .nav-link {
+          background-color: rgba(0, 0, 0, 0.03);
+          border-radius: 4px;
         }
       `}</style>
     </nav>
