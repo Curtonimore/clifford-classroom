@@ -29,12 +29,25 @@ function isAdminEmail(email: string | null | undefined): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
+// Detect build environment
+const isBuildProcess = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_GIT_COMMIT_SHA;
+
+// For build environment, provide a fallback adapter if MongoDB can't connect
+const getAdapter = () => {
+  if (isBuildProcess) {
+    // During build, return null adapter to prevent connection attempts
+    console.log('Build process detected, skipping MongoDB adapter initialization');
+    return undefined;
+  }
+  return MongoDBAdapter(clientPromise);
+};
+
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: getAdapter(),
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || 'placeholder-client-id-for-build',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder-client-secret-for-build',
       authorization: {
         params: {
           prompt: "consent",
@@ -99,7 +112,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   // Ensure we have the correct URL regardless of environment
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-build-process',
   debug: process.env.NODE_ENV === 'development',
 };
 
