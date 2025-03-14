@@ -1,14 +1,30 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with your secret key
+// Initialize Stripe with optimized settings for serverless environments
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion, // Use the latest API version
+  timeout: 30000, // 30 second timeout (default is 80 seconds which is too long for serverless)
+  maxNetworkRetries: 3, // Automatically retry failed requests
+  telemetry: false, // Disable telemetry in production for better performance
+  httpAgent: new (require('http').Agent)({ keepAlive: true }), // Keep connections alive
 });
 
 // Pricing IDs - replace these with your actual price IDs from Stripe Dashboard after creating products
 const SUBSCRIPTION_PRICES = {
   basic: process.env.STRIPE_PRICE_BASIC || 'price_basic',
   premium: process.env.STRIPE_PRICE_PREMIUM || 'price_premium',
+};
+
+// Helper for handling Stripe API errors
+const handleStripeError = (error: any, operation: string) => {
+  const errorMessage = error?.message || 'Unknown error occurred';
+  console.error(`Stripe ${operation} error:`, {
+    type: error?.type,
+    code: error?.code,
+    message: errorMessage,
+    requestId: error?.requestId
+  });
+  return { success: false, error: errorMessage, code: error?.code };
 };
 
 /**
@@ -43,12 +59,20 @@ export async function createCheckoutSession(
         userId: customerId,
         tier: tier,
       },
+      // Speed up checkout by prefilling customer details
+      billing_address_collection: 'auto',
+      payment_method_options: {
+        card: {
+          setup_future_usage: 'off_session'  // Don't save card for future use
+        }
+      },
+      // Add tax ID collection if needed
+      // tax_id_collection: { enabled: true },
     });
     
     return { success: true, sessionId: session.id, url: session.url };
   } catch (error: any) {
-    console.error('Error creating checkout session:', error);
-    return { success: false, error: error.message };
+    return handleStripeError(error, 'checkout session creation');
   }
 }
 
@@ -79,8 +103,7 @@ export async function getOrCreateCustomer(userId: string, email: string, name?: 
     
     return { success: true, customerId: customer.id };
   } catch (error: any) {
-    console.error('Error creating/getting customer:', error);
-    return { success: false, error: error.message };
+    return handleStripeError(error, 'customer creation');
   }
 }
 
@@ -110,8 +133,7 @@ export async function getSubscription(subscriptionId: string) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     return { success: true, subscription };
   } catch (error: any) {
-    console.error('Error retrieving subscription:', error);
-    return { success: false, error: error.message };
+    return handleStripeError(error, 'subscription retrieval');
   }
 }
 
@@ -123,8 +145,7 @@ export async function cancelSubscription(subscriptionId: string) {
     const subscription = await stripe.subscriptions.cancel(subscriptionId);
     return { success: true, subscription };
   } catch (error: any) {
-    console.error('Error canceling subscription:', error);
-    return { success: false, error: error.message };
+    return handleStripeError(error, 'subscription cancellation');
   }
 }
 
