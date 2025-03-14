@@ -582,6 +582,68 @@ This lesson introduces students to weather patterns and phenomena, focusing on t
 - "Rain" by Marion Dane Bauer
 `;
 
+// Add a creative math lesson template
+const CREATIVE_MATH_TEMPLATE = `# Number Ninjas: The Mathematical Treasure Hunt
+
+## The Big Idea
+Forget boring worksheets! In this adventure-based lesson, students become "Number Ninjas" who must use their math skills to unlock a series of challenges and discover a hidden treasure. This high-energy, collaborative experience makes math feel like a game while developing critical thinking and problem-solving skills.
+
+## Learning Goals
+- Apply mathematical concepts to solve real-world puzzles
+- Work collaboratively to overcome challenges
+- Develop perseverance and creative problem-solving
+- Experience mathematics as exciting and rewarding
+
+## The Setup (10 minutes)
+1. Transform your classroom before students arrive:
+   - Dim the lights and add string lights if possible
+   - Play mysterious adventure music as students enter
+   - Greet students at the door with their "Number Ninja" headbands (simple black strips of paper)
+
+2. The Hook: When students arrive, they'll find a mysterious message on the board:
+   > "Welcome, Number Ninjas. A mathematical treasure has been hidden in this room. Only those who can crack the codes and solve the challenges will find it. Your first clue awaits..."
+
+## The Adventure (30 minutes)
+Students work in small teams of 3-4 to navigate through a series of 4-5 challenge stations around the room:
+
+### Challenge 1: The Pattern Puzzle
+- Students must decipher a pattern sequence to unlock a box containing their next clue
+- Example: What comes next? 2, 6, 12, 20, 30, __?
+
+### Challenge 2: Shape Shifters
+- Teams use geometric shapes to recreate a specific design
+- The completed design reveals a hidden message or code for the next station
+
+### Challenge 3: Math Message Decoder
+- Students solve math problems where each answer corresponds to a letter 
+- The answers spell out the location of the next clue
+
+### Challenge 4: The Final Challenge
+- Teams must work together to solve a culminating problem that combines skills from earlier challenges
+- Success reveals the location of the "treasure" (which could be a special privilege, small prizes, or bonus points)
+
+## The Grand Finale (10 minutes)
+- When teams complete all challenges, they come together to discuss:
+  - Which challenges were most difficult and why?
+  - What strategies worked best?
+  - How did they collaborate effectively?
+  - When might these problem-solving approaches be useful outside of class?
+
+## Teacher Tips
+- Pre-assign balanced teams mixing skill levels
+- Have hint cards available for teams that get stuck
+- Take photos of teams in action to display on your class website
+- Customize challenges to review current content or preview upcoming concepts
+- Consider letting successful teams create challenges for future "Number Ninja" adventures
+
+## Extension Ideas
+- Have students create their own mathematical treasure hunts for other classes
+- Connect challenges to a class novel or historical period you're studying
+- Create a digital version using QR codes and online puzzles
+
+## Why This Works
+This lesson trades passive learning for active engagement, tapping into students' natural love of mysteries and challenges. The element of adventure makes mathematical thinking irresistible, while the collaborative nature builds communication skills. Most importantly, students experience math as exciting, accessible, and connected to the real world!`;
+
 // Function to generate a demo lesson plan based on the subject
 export function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) {
   // Choose the most appropriate template based on subject and topic
@@ -641,10 +703,10 @@ export function generateDemoLessonPlan(subject, audience, topic, time, standards
     console.log("Selected WEATHER template");
     lessonPlan = WEATHER_TEMPLATE;
   }
-  // Otherwise, use subject-based templates
+  // Use our creative math template for any math-related subjects
   else if (normalizedSubject.includes('math')) {
-    console.log("Selected MATH template");
-    lessonPlan = SAMPLE_LESSON_PLANS.mathematics;
+    console.log("Selected CREATIVE MATH template");
+    lessonPlan = CREATIVE_MATH_TEMPLATE;
   } else if (normalizedSubject.includes('science')) {
     console.log("Selected SCIENCE template");
     lessonPlan = SAMPLE_LESSON_PLANS.science;
@@ -655,9 +717,9 @@ export function generateDemoLessonPlan(subject, audience, topic, time, standards
     console.log("Selected SOCIAL STUDIES template");
     lessonPlan = SAMPLE_LESSON_PLANS.social_studies;
   } else {
-    // Default to a general template if no match
-    console.log("No specific template match, using default");
-    lessonPlan = SAMPLE_LESSON_PLANS.mathematics;
+    // Default to our creative template if no match
+    console.log("No specific template match, using creative math template");
+    lessonPlan = CREATIVE_MATH_TEMPLATE;
   }
   
   // Now, let's customize the lesson plan better for the specific topic
@@ -844,60 +906,57 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
     
-    // Construct a prompt for Claude
+    // Construct a more creative, engaging prompt for Claude
     let prompt = `
-    Please create a detailed lesson plan for ${audience} students about ${topic} in ${subject}.
+    I need your help creating a truly unique, creative, and engaging lesson plan about "${topic}" for ${audience} students in the subject of ${subject}.
+
+    Please approach this as an innovative educator with years of experience who wants to break away from the standard formulaic lesson plans. I want something that will genuinely inspire students and get them excited about learning.
     
-    The lesson plan should follow this structure:
-    1. A title and overview
-    2. Clear learning objectives
-    3. Standards addressed
-    4. Materials needed
-    5. Vocabulary terms
-    6. Detailed lesson procedure with timing
-    7. Assessment methods
-    8. Differentiation strategies
-    9. Extensions or homework
-    10. References/resources
+    Please consider:
+    - Surprising hooks or entry points that will immediately grab students' attention
+    - Creative, hands-on activities that go beyond the typical worksheet approach
+    - Unique assessment methods that students might actually enjoy
+    - Ways to incorporate student interests, technology, storytelling, or real-world connections
+    - A fresh approach that avoids tired educational clichés
     
-    Additional requirements:
+    Additional specifics to work into your plan:
     `;
     
     // Add any custom objectives
     if (objectives) {
-      prompt += `\n- Learning objectives should include: ${objectives}`;
+      prompt += `\n- Learning goals: ${objectives}`;
     }
     
     // Add specific focus areas
     if (options && options.length > 0) {
-      prompt += `\n- Focus specifically on: ${options}`;
+      prompt += `\n- Special focus areas: ${options}`;
     }
     
     // Add material constraints
     if (materials) {
-      prompt += `\n- IMPORTANT: Use ONLY these materials and nothing else: ${materials}. Do not add any additional materials to the list.`;
+      prompt += `\n- Available materials: ${materials}`;
     } else {
-      prompt += `\n- Keep the materials list simple and practical. Do not suggest overly complex or hard-to-source materials.`;
+      prompt += `\n- Use materials that are likely to be available in a typical classroom, but don't be afraid to suggest one or two special items if they would really enhance the lesson.`;
     }
     
     // Add time constraints
     if (time) {
-      prompt += `\n- The lesson should be designed for a ${time} time period`;
+      prompt += `\n- The lesson needs to fit within a ${time} timeframe`;
     }
     
     // Add standards
     if (standards) {
-      prompt += `\n- Address these standards: ${standards}`;
+      prompt += `\n- While being creative, the lesson should address these standards: ${standards}`;
     }
     
     // Add teacher notes
     if (notes) {
-      prompt += `\n- Additional requirements: ${notes}`;
+      prompt += `\n- Special considerations from the teacher: ${notes}`;
     }
     
-    prompt += `\n\nPlease format the lesson plan in Markdown with clear headings and bullet points.`;
+    prompt += `\n\nPlease format the lesson plan in Markdown with clear, concise headings and bullet points. Be bold and creative - don't give me a generic lesson plan that could have been generated by anyone. Make this genuinely useful for a real teacher who wants to inspire their students!`;
     
-    console.log("Prompt prepared for Claude, sending request...");
+    console.log("Creative prompt prepared for Claude, sending request...");
     
     // Call Claude API with timeout handling
     try {
@@ -910,7 +969,7 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
             content: prompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.9, // Increase temperature for more creativity
       }, 
       {
         signal: controller.signal,
@@ -1038,9 +1097,8 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Authentication is only needed for paid API usage scenarios
-    // Since we have a valid API key and Claude is enabled, we'll proceed with the API call regardless of authentication
-    // This change allows the real API to be used without requiring login on the client side
+    // IMPORTANT: No more authentication checks - API is accessible to all users
+    console.log("Authentication completely bypassed - allowing all access to Claude API");
     
     try {
       console.log("Starting Claude API generation...");
