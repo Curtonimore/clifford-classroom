@@ -36,17 +36,25 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Handle JWT to include role
     async jwt({ token, user }) {
-      if (user) {
-        // Set role when user first signs in
-        token.role = isAdminEmail(user.email) ? "admin" : "user";
+      try {
+        if (user) {
+          // Set role when user first signs in
+          token.role = isAdminEmail(user.email) ? "admin" : "user";
+        }
+      } catch (error) {
+        console.error("JWT callback error:", error);
       }
       return token;
     },
     
     // Add role to session
     async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role as Role;
+      try {
+        if (session.user) {
+          session.user.role = token.role as Role;
+        }
+      } catch (error) {
+        console.error("Session callback error:", error);
       }
       return session;
     },
