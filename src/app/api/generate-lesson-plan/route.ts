@@ -820,6 +820,9 @@ function generateDemoLessonPlan(subject, audience, topic, time, standards, objec
 
 // Function to generate a lesson plan using Claude API
 async function generateLessonPlanWithClaude(subject, audience, topic, time, standards, objectives, options, materials, notes) {
+  // Add timeout handling for Claude API
+  const TIMEOUT_MS = 25000; // 25 second timeout
+  
   try {
     console.log("Starting Claude API integration");
     // Get API key from environment
@@ -834,6 +837,10 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     const anthropic = new Anthropic({
       apiKey: apiKey,
     });
+    
+    // Create an AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
     
     // Construct a prompt for Claude
     let prompt = `
@@ -890,7 +897,7 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
     
     console.log("Prompt prepared for Claude, sending request...");
     
-    // Call Claude API
+    // Call Claude API with timeout handling
     try {
       const response = await anthropic.messages.create({
         model: 'claude-3-opus-20240229',
@@ -902,7 +909,24 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
           }
         ],
         temperature: 0.7,
+      }, 
+      {
+        signal: controller.signal,
+      }).catch(error => {
+        if (error.name === 'AbortError') {
+          console.error('Claude API request timed out');
+          // Fall back to demo lesson plan
+          return { 
+            content: [{ 
+              type: 'text', 
+              text: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) 
+            }] 
+          };
+        }
+        throw error;
       });
+      
+      clearTimeout(timeoutId);
       
       console.log("Claude API response received");
       
@@ -932,11 +956,13 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
       return lessonPlan;
     } catch (apiError) {
       console.error("Error during Claude API call:", apiError);
-      throw apiError;
+      // Fall back to demo lesson plan on API error
+      return generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes);
     }
   } catch (error) {
-    console.error('Error in Claude integration:', error);
-    throw error;
+    console.error('Error generating lesson plan with Claude:', error);
+    // Fallback to demo lesson plan on any error
+    return generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes);
   }
 }
 
@@ -969,125 +995,171 @@ function isValidClaudeApiKey(key: string | undefined): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("API route called");
-    // Get form data from request
-    const { standards, audience, time, subject, topic, objectives, options, materials, notes } = await request.json();
+    // Add a quick response header to prevent timeouts
+    const responseStream = new TransformStream();
+    const writer = responseStream.writable.getWriter();
     
-    console.log("Form data received:", { subject, topic, audience });
-    
-    let lessonPlan = '';
-    
-    // Check if demo mode is forced by the header
-    const forceDemoMode = request.headers.get('X-Force-Demo-Mode') === 'true';
-    if (forceDemoMode) {
-      console.log("Demo mode forced by request header");
-    }
-    
-    // Check authentication status
-    const session = await getServerSession(authOptions);
-    const isAuthenticated = !!session;
-    console.log("User authenticated:", isAuthenticated);
-    
-    // If user is not authenticated, force demo mode
-    if (!isAuthenticated) {
-      console.log("User not authenticated, forcing demo mode");
-      const demoLessonPlan = generateDemoLessonPlan(
-        subject, audience, topic, time, standards, objectives, options, materials, notes
-      );
-      
-      return NextResponse.json({ 
-        lessonPlan: demoLessonPlan,
-        metadata: {
-          standards,
-          audience,
-          time,
-          subject,
-          topic,
-          objectives,
-          options,
-          materials,
-          notes,
-          generatedAt: new Date().toISOString(),
-          mode: 'demo',
-          authRequired: true
-        }
-      });
-    }
-    
-    // Get the API key and validate it
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log("API Key found:", apiKey ? "Yes (starts with: " + apiKey.substring(0, 10) + "...)" : "No");
-    const isValidKey = isValidClaudeApiKey(apiKey);
-    console.log("Is valid Claude API key format:", isValidKey);
-    
-    // Decide whether to use Claude or demo mode with better validation
-    const useClaudeAPI = !forceDemoMode && isValidKey && process.env.USE_CLAUDE_API === 'true';
-    console.log("Using Claude API:", useClaudeAPI, "Demo mode:", !useClaudeAPI);
-    
-    if (useClaudeAPI) {
-      console.log("Starting Claude API generation...");
-      try {
-        // Generate lesson plan with Claude API
-        lessonPlan = await generateLessonPlanWithClaude(
-          subject, audience, topic, time, standards, objectives, options, materials, notes
-        );
-        console.log("Claude generation complete, lesson plan length:", lessonPlan.length);
-      } catch (error) {
-        console.error("Error in Claude integration:", error);
-        // Fall back to demo mode on Claude API error
-        console.log("Falling back to demo mode due to Claude API error");
-        lessonPlan = generateDemoLessonPlan(
-          subject, audience, topic, time, standards, objectives, options, materials, notes
-        );
-      }
-    } else {
-      // If Claude should be used but key is invalid, report the error
-      if (!forceDemoMode && process.env.USE_CLAUDE_API === 'true' && !isValidKey) {
-        console.error("Claude API requested but key is invalid or missing");
-        return NextResponse.json(
-          { 
-            error: "API Key Error",
-            message: "Claude API is enabled but the API key appears to be invalid. Please check your .env.local file."
-          },
-          { status: 500 }
-        );
-      }
-      
-      console.log("Using demo mode generation...");
-      // Generate demo lesson plan (no API key needed)
-      lessonPlan = generateDemoLessonPlan(
-        subject, audience, topic, time, standards, objectives, options, materials, notes
-      );
-      
-      // Add a small delay to simulate processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Demo generation complete");
-    }
-    
-    console.log("Sending response back to client");
-    return NextResponse.json({ 
-      lessonPlan,
-      metadata: {
-        standards,
-        audience,
-        time,
-        subject,
-        topic,
-        objectives,
-        options,
-        materials,
-        notes,
-        generatedAt: new Date().toISOString(),
-        mode: useClaudeAPI ? 'claude' : 'demo'
+    // Start response early
+    const response = new NextResponse(responseStream.readable, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Transfer-Encoding': 'chunked'
       }
     });
-  } catch (error: any) {
+    
+    // Process the request asynchronously
+    (async () => {
+      // Define formData at a higher scope so it's available in the catch block
+      let formData: any = {};
+      
+      try {
+        console.log("API route called");
+        // Get form data from request
+        formData = await request.json();
+        const { standards, audience, time, subject, topic, objectives, options, materials, notes } = formData;
+        
+        console.log("Form data received:", { subject, topic, audience });
+        
+        let lessonPlan = '';
+        
+        // Check if demo mode is forced by the header
+        const forceDemoMode = request.headers.get('X-Force-Demo-Mode') === 'true';
+        if (forceDemoMode) {
+          console.log("Demo mode forced by request header");
+        }
+        
+        // Check authentication status
+        const session = await getServerSession(authOptions);
+        const isAuthenticated = !!session;
+        console.log("User authenticated:", isAuthenticated);
+        
+        // If user is not authenticated, force demo mode
+        if (!isAuthenticated) {
+          console.log("User not authenticated, forcing demo mode");
+          const demoLessonPlan = generateDemoLessonPlan(
+            subject, audience, topic, time, standards, objectives, options, materials, notes
+          );
+          
+          writer.write(JSON.stringify({
+            lessonPlan: demoLessonPlan,
+            metadata: {
+              standards,
+              audience,
+              time,
+              subject,
+              topic,
+              objectives,
+              options,
+              materials,
+              notes,
+              generatedAt: new Date().toISOString(),
+              mode: 'demo',
+              authRequired: true
+            }
+          }));
+          writer.close();
+          return response;
+        }
+        
+        // Get the API key and validate it
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        console.log("API Key found:", apiKey ? "Yes (starts with: " + apiKey.substring(0, 10) + "...)" : "No");
+        const isValidKey = isValidClaudeApiKey(apiKey);
+        console.log("Is valid Claude API key format:", isValidKey);
+        
+        // Decide whether to use Claude or demo mode with better validation
+        const useClaudeAPI = !forceDemoMode && isValidKey && process.env.USE_CLAUDE_API === 'true';
+        console.log("Using Claude API:", useClaudeAPI, "Demo mode:", !useClaudeAPI);
+        
+        if (useClaudeAPI) {
+          console.log("Starting Claude API generation...");
+          try {
+            // Generate lesson plan with Claude API
+            lessonPlan = await generateLessonPlanWithClaude(
+              subject, audience, topic, time, standards, objectives, options, materials, notes
+            );
+            console.log("Claude generation complete, lesson plan length:", lessonPlan.length);
+          } catch (error) {
+            console.error("Error in Claude integration:", error);
+            // Fall back to demo mode on Claude API error
+            console.log("Falling back to demo mode due to Claude API error");
+            lessonPlan = generateDemoLessonPlan(
+              subject, audience, topic, time, standards, objectives, options, materials, notes
+            );
+          }
+        } else {
+          // If Claude should be used but key is invalid, report the error
+          if (!forceDemoMode && process.env.USE_CLAUDE_API === 'true' && !isValidKey) {
+            console.error("Claude API requested but key is invalid or missing");
+            return NextResponse.json(
+              { 
+                error: "API Key Error",
+                message: "Claude API is enabled but the API key appears to be invalid. Please check your .env.local file."
+              },
+              { status: 500 }
+            );
+          }
+          
+          console.log("Using demo mode generation...");
+          // Generate demo lesson plan (no API key needed)
+          lessonPlan = generateDemoLessonPlan(
+            subject, audience, topic, time, standards, objectives, options, materials, notes
+          );
+          
+          // Add a small delay to simulate processing
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          console.log("Demo generation complete");
+        }
+        
+        console.log("Sending response back to client");
+        // Write result to stream
+        writer.write(JSON.stringify({ 
+          lessonPlan,
+          metadata: {
+            standards,
+            audience,
+            time,
+            subject,
+            topic,
+            objectives,
+            options,
+            materials,
+            notes,
+            generatedAt: new Date().toISOString(),
+            mode: useClaudeAPI ? 'claude' : 'demo'
+          }
+        }));
+      } catch (error: unknown) {
+        // Handle errors by writing error response to the stream
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const demoLessonPlan = generateDemoLessonPlan(
+          formData?.subject || '', 
+          formData?.audience || '', 
+          formData?.topic || '', 
+          formData?.time || '', 
+          formData?.standards || '', 
+          formData?.objectives || '', 
+          formData?.options || [], 
+          formData?.materials || '', 
+          formData?.notes || ''
+        );
+        
+        writer.write(JSON.stringify({ 
+          error: 'Error generating lesson plan',
+          message: errorMessage,
+          lessonPlan: demoLessonPlan
+        }));
+      } finally {
+        writer.close();
+      }
+    })();
+    
+    return response;
+  } catch (error: unknown) {
     console.error("Error in lesson plan generation:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { 
-        error: "Failed to generate lesson plan",
-        message: error.message || "An unexpected error occurred."
-      },
+      { error: errorMessage },
       { status: 500 }
     );
   }
