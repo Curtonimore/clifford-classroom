@@ -325,28 +325,28 @@ export default function NavBar() {
         
         .nav-item {
           position: relative;
-          margin: 0; /* Remove margin and use gap instead for more consistent spacing */
+          margin: 0;
           display: flex;
           align-items: center;
           height: 100%;
-          white-space: nowrap; /* Prevent text wrapping */
-          /* Add fixed height to prevent layout jumps */
+          white-space: nowrap;
           min-height: 40px;
+          height: 40px; /* Fixed height to prevent jittering */
         }
         
         .nav-link {
           display: flex;
           align-items: center;
-          padding: 0 0.75rem; /* Increased padding for better clickability */
+          padding: 0 0.75rem;
           color: #000000;
           text-decoration: none;
           white-space: nowrap;
           border: none;
           background: none;
           height: 100%;
-          min-height: 40px; /* Ensure minimum height for stability */
+          min-height: 40px;
           font-size: 0.9rem;
-          position: relative; /* For hover indicator */
+          position: relative;
         }
         
         .nav-link:hover {
@@ -354,21 +354,22 @@ export default function NavBar() {
           text-decoration: none;
         }
         
-        /* Add hover indicator for better user feedback */
+        /* Replace the hover indicator with a stable implementation */
         .nav-link::after {
           content: '';
           position: absolute;
           bottom: -2px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 0;
+          left: 0;
+          width: 100%;
           height: 2px;
           background-color: var(--accent, #1B4332);
-          transition: width 0.2s ease;
+          transform: scaleX(0);
+          transform-origin: center;
+          transition: transform 0.2s ease;
         }
         
         .nav-link:hover::after {
-          width: 70%;
+          transform: scaleX(0.7);
         }
         
         .loading-indicator {
@@ -700,7 +701,7 @@ export default function NavBar() {
         /* Dropdown styles for desktop - missing previously */
         .dropdown-content {
           position: absolute;
-          top: 100%;
+          top: 40px; /* Match the fixed height of nav items */
           left: 0;
           background: #ffffff;
           min-width: 200px;
@@ -709,67 +710,73 @@ export default function NavBar() {
           border-radius: 4px;
           visibility: hidden;
           opacity: 0;
-          transform: translateY(-10px);
-          transition: visibility 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+          transform: translateY(0);
+          transition: opacity 0.2s ease, visibility 0.2s ease;
           z-index: 10;
           padding: 0.5rem 0;
-          pointer-events: auto; /* Allow pointer events to ensure hover works */
+          pointer-events: none; /* Initially disable pointer events */
           display: block; /* Always keep element in DOM to prevent disappearing */
-          transition-delay: 0s; /* No delay for initial hiding */
         }
         
-        /* Create a better hover bridge between nav item and dropdown */
-        .dropdown-content::before {
-          content: '';
-          position: absolute;
-          height: 20px; /* Increased from 15px */
-          width: 100%;
-          top: -20px; /* Increased from -15px */
-          left: 0;
-        }
-        
-        /* Add this new style to create hover affordance */
+        /* New approach to dropdown hover - use a simpler structure */
         .nav-item.dropdown {
-          padding-bottom: 20px; /* This creates space for the hover bridge */
-          margin-bottom: -20px; /* This offsets the padding so visual appearance is the same */
+          padding-bottom: 0;
+          margin-bottom: 0;
         }
         
-        /* Improved dropdown link styles */
-        .dropdown-link {
-          display: block;
-          padding: 0.5rem 1rem;
-          text-decoration: none;
+        .dropdown-content::before {
+          display: none; /* Remove the hover bridge that was causing issues */
+        }
+        
+        /* Improve the nav link hover effect to avoid layout shifts */
+        .nav-link {
+          display: flex;
+          align-items: center;
+          padding: 0 0.75rem;
           color: #000000;
-          transition: background-color 0.2s ease;
+          text-decoration: none;
           white-space: nowrap;
           border: none;
           background: none;
-          text-align: left;
-          width: 100%;
+          height: 100%;
+          min-height: 40px;
           font-size: 0.9rem;
+          position: relative;
         }
         
-        .dropdown-link:hover {
-          background-color: #f3f4f6;
+        .nav-link:hover {
           color: var(--accent);
+          text-decoration: none;
         }
         
-        .dropdown:hover .dropdown-content {
-          visibility: visible;
+        /* Replace the hover indicator with a stable implementation */
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background-color: var(--accent, #1B4332);
+          transform: scaleX(0);
+          transform-origin: center;
+          transition: transform 0.2s ease;
+        }
+        
+        .nav-link:hover::after {
+          transform: scaleX(0.7);
+        }
+        
+        /* Make dropdown visible on hover without delay */
+        .dropdown:hover .dropdown-content,
+        .dropdown.active .dropdown-content {
+          transform: translateY(0); /* No movement, just visibility/opacity change */
           opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto; /* Re-enable pointer events on hover */
-          transition-delay: 0s, 0s, 0s; /* No delay for showing */
+          visibility: visible;
+          pointer-events: auto;
         }
         
-        /* Special handling for user dropdown menu */
-        .user-dropdown {
-          right: 0;
-          left: auto;
-          width: 240px;
-        }
-        
-        /* Keep dropdown visible when hovering over dropdown content */
+        /* Keep dropdown open when hovering over content */
         .dropdown-content:hover {
           visibility: visible;
           opacity: 1;
@@ -777,51 +784,9 @@ export default function NavBar() {
           pointer-events: auto;
         }
         
-        /* Add styles for active dropdown */
-        .dropdown.active .dropdown-content {
-          visibility: visible;
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
-        }
-        
-        /* Add a pointer cursor to the dropdown items */
-        .nav-item.dropdown {
-          cursor: pointer;
-        }
-        
-        /* Add a transition delay when leaving the dropdown to prevent it from closing too quickly */
-        .dropdown-content {
-          transition-delay: 0s, 0s, 0s; /* Initial delay values */
-        }
-        
-        .nav-item.dropdown:hover .dropdown-content {
-          transition-delay: 0s, 0s, 0s; /* No delay for showing */
-        }
-        
-        .nav-item.dropdown:not(:hover) .dropdown-content {
-          transition-delay: 0.3s, 0.3s, 0.3s; /* Add delay when hiding */
-        }
-        
-        /* Make the dropdown links display as block for better touch targets */
-        .dropdown-link {
-          display: block;
-          padding: 0.75rem 1rem;
-          text-decoration: none;
-          color: #000000;
-          transition: background-color 0.2s ease, color 0.2s ease;
-          white-space: nowrap;
-          border: none;
-          background: none;
-          text-align: left;
-          width: 100%;
-          font-size: 0.9rem;
-          border-radius: 2px;
-        }
-        
         /* Add specific styles for active state dropdown */
         .dropdown.active > .nav-link::after {
-          width: 70%; /* Match hover state */
+          transform: scaleX(0.7); /* Match hover state */
         }
         
         /* Force dropdown to remain open when clicking on dropdown content */
@@ -838,10 +803,52 @@ export default function NavBar() {
           z-index: 60;
         }
         
-        /* Add a slight background color to the active dropdown parent for additional visual feedback */
+        /* Add a subtle background color to active dropdown parent for better visual feedback */
         .dropdown.active > .nav-link {
-          background-color: rgba(0, 0, 0, 0.03);
+          background-color: rgba(0, 0, 0, 0.02);
           border-radius: 4px;
+        }
+
+        /* Keep dropdown open when hovering over content */
+        .dropdown-content:hover {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        /* Add a stable active state for dropdowns */
+        .dropdown.active .dropdown-content {
+          visibility: visible;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        /* Remove delay when hiding dropdown */
+        .nav-item.dropdown:not(:hover) .dropdown-content {
+          transition-delay: 0s;
+        }
+
+        /* Make the dropdown links display as block for better touch targets */
+        .dropdown-link {
+          display: block;
+          padding: 0.75rem 1rem;
+          text-decoration: none;
+          color: #000000;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          white-space: nowrap;
+          border: none;
+          background: none;
+          text-align: left;
+          width: 100%;
+          font-size: 0.9rem;
+          border-radius: 2px;
+        }
+
+        /* Add specific styles for active state dropdown */
+        .dropdown.active > .nav-link::after {
+          transform: scaleX(0.7); /* Match hover state using transform instead of width */
         }
       `}</style>
     </nav>
