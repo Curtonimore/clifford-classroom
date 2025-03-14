@@ -1097,12 +1097,28 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // IMPORTANT: No more authentication checks - API is accessible to all users
-    console.log("Authentication completely bypassed - allowing all access to Claude API");
+    // Get the server session to check authentication - RESTORE AUTHENTICATION
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      console.log("Unauthenticated request - returning demo lesson plan");
+      return NextResponse.json({
+        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
+        fromDemo: true,
+        error: "Authentication required for real AI generation - using demo lesson plan",
+        metadata: {
+          mode: 'demo',
+          reason: 'Authentication required',
+          authRequired: true
+        }
+      });
+    }
+    
+    console.log("User authenticated, proceeding with Claude API generation");
     
     try {
       console.log("Starting Claude API generation...");
-      // Generate lesson plan with Claude API
+      // Generate lesson plan with Claude API - KEEP THE CREATIVE PROMPT
       const lessonPlan = await generateLessonPlanWithClaude(
         subject, audience, topic, time, standards, objectives, options, materials, notes
       );
@@ -1124,7 +1140,7 @@ export async function POST(request: NextRequest) {
           notes,
           generatedAt: new Date().toISOString(),
           mode: 'claude',
-          authRequired: false
+          authRequired: true
         }
       });
     } catch (error: any) {
