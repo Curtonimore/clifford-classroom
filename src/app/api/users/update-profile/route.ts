@@ -10,6 +10,11 @@ export async function POST(request: NextRequest) {
     
     // Get the current user session for authentication
     const session = await getAuthSession();
+    console.log("Update Profile API: Session info:", { 
+      isAuthenticated: !!session?.user,
+      email: session?.user?.email,
+      role: session?.user?.role
+    });
     
     if (!session?.user) {
       console.log("Update Profile API: Unauthorized - No session user");
@@ -46,28 +51,46 @@ export async function POST(request: NextRequest) {
     }
     
     // Connect to MongoDB
-    console.log("Update Profile API: Connecting to MongoDB");
-    const client = await clientPromise;
+    console.log("Update Profile API: Attempting to connect to MongoDB");
+    console.log("Update Profile API: MONGODB_URI exists:", !!process.env.MONGODB_URI);
     
-    if (!client) {
-      console.error("Update Profile API: Failed to connect to MongoDB");
+    let client;
+    try {
+      client = await clientPromise;
+      console.log("Update Profile API: MongoDB client created successfully");
+      
+      if (!client) {
+        console.error("Update Profile API: MongoDB client is null after creation");
+        throw new Error("MongoDB client is null");
+      }
+    } catch (connectionError) {
+      console.error("Update Profile API: MongoDB connection error:", connectionError);
       return NextResponse.json({ 
-        error: "Database connection failed" 
+        error: "Database connection failed",
+        details: connectionError instanceof Error ? connectionError.message : String(connectionError)
       }, { status: 500 });
     }
     
+    // Successfully connected to MongoDB
+    console.log("Update Profile API: Connected to MongoDB");
     const db = client.db();
-    console.log("Update Profile API: Connected to database");
+    console.log("Update Profile API: Acquired database reference");
     
     // Make sure users collection exists
+    console.log("Update Profile API: Checking if users collection exists");
     const collections = await db.listCollections({ name: 'users' }).toArray();
+    
     if (collections.length === 0) {
       console.log("Update Profile API: Users collection doesn't exist, creating it");
       await db.createCollection('users');
+    } else {
+      console.log("Update Profile API: Users collection exists");
     }
     
     // Find user by email
+    console.log("Update Profile API: Searching for user with email:", session.user.email);
     const existingUser = await db.collection('users').findOne({ email: session.user.email });
+    console.log("Update Profile API: User found:", !!existingUser);
     
     // Extract allowed fields to update
     const allowedFields = [
@@ -99,6 +122,7 @@ export async function POST(request: NextRequest) {
     
     // Add metadata
     updateData.updatedAt = new Date();
+    console.log("Update Profile API: Fields to update:", Object.keys(updateData));
     
     // If user doesn't exist, create a new user record
     if (!existingUser) {
@@ -122,7 +146,9 @@ export async function POST(request: NextRequest) {
         ...updateData
       };
       
+      console.log("Update Profile API: Creating new user document");
       const result = await db.collection('users').insertOne(newUserData);
+      console.log("Update Profile API: User created with ID:", result.insertedId);
       
       return NextResponse.json({
         success: true,
@@ -134,12 +160,16 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Update existing user
-      console.log("Update Profile API: Updating existing user");
+      console.log("Update Profile API: Updating existing user with ID:", existingUser._id);
       
       const result = await db.collection('users').updateOne(
         { email: session.user.email },
         { $set: updateData }
       );
+      console.log("Update Profile API: Update result:", {
+        matched: result.matchedCount,
+        modified: result.modifiedCount
+      });
       
       // Get the updated user
       const updatedUser = await db.collection('users').findOne({ email: session.user.email });
@@ -151,7 +181,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error("Update Profile API: Error:", error);
+    console.error("Update Profile API: Unhandled error:", error);
     return NextResponse.json({ 
       error: "Failed to update profile",
       details: error instanceof Error ? error.message : String(error)

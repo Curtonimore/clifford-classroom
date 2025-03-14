@@ -12,13 +12,14 @@ import { BASE_URL, auth } from './config';
 export type Role = "user" | "premium" | "admin";
 
 export interface UserWithRole extends DefaultUser {
-  role: Role;
-  id: string;
+  role?: Role;
 }
 
-// Fix the ExtendedSession interface to correctly extend Session
-export interface ExtendedSession extends Omit<Session, 'user'> {
-  user: UserWithRole;
+// For TypeScript type safety with next-auth
+declare module "next-auth" {
+  interface User {
+    role?: Role;
+  }
 }
 
 // Function to check if an email is in the admin list
@@ -32,18 +33,25 @@ function isAdminEmail(email: string | null | undefined): boolean {
 // Detect build environment
 const isBuildProcess = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_GIT_COMMIT_SHA;
 
-// For build environment, provide a fallback adapter if MongoDB can't connect
-const getAdapter = () => {
+// This function properly creates the MongoDB adapter using a singleton connection
+function createMongoDBAdapter() {
   if (isBuildProcess) {
     // During build, return null adapter to prevent connection attempts
     console.log('Build process detected, skipping MongoDB adapter initialization');
     return undefined;
   }
-  return MongoDBAdapter(clientPromise);
-};
+  
+  try {
+    console.log('Creating MongoDB adapter for NextAuth');
+    return MongoDBAdapter(clientPromise);
+  } catch (error) {
+    console.error('Error creating MongoDB adapter:', error);
+    return undefined;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: getAdapter(),
+  adapter: createMongoDBAdapter(),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID || 'placeholder-client-id-for-build',
@@ -69,6 +77,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       // Initial sign in
       if (account && user) {
+        console.log("NextAuth: Initial sign in for user:", user.email);
         // Assign role based on email
         const role: Role = isAdminEmail(user.email) ? "admin" : "user";
         
@@ -99,8 +108,11 @@ export const authOptions: NextAuthOptions = {
       
       return session;
     },
+
     // Make sure the callbackUrl is properly determined based on the environment
     async redirect({ url, baseUrl }) {
+      console.log("NextAuth redirect:", { url, baseUrl });
+      
       // If URL starts with baseUrl, it's safe to redirect
       if (url.startsWith(baseUrl)) return url;
       
@@ -110,6 +122,61 @@ export const authOptions: NextAuthOptions = {
       // Otherwise, redirect to the base URL
       return baseUrl;
     },
+
+    // Make sure new users are properly created in the database
+    async signIn({ user, account, profile }) {
+      console.log("NextAuth: Sign in attempt for:", user.email);
+      
+      try {
+        // Try to connect to MongoDB and ensure the user exists
+        const client = await clientPromise;
+        const db = client.db();
+        
+        // Check if users collection exists
+        const collections = await db.listCollections({ name: 'users' }).toArray();
+        if (collections.length === 0) {
+          console.log("NextAuth: Creating users collection");
+          await db.createCollection('users');
+        }
+        
+        // Check if user exists in the database
+        const existingUser = await db.collection('users').findOne({ email: user.email });
+        
+        if (!existingUser && user.email) {
+          console.log("NextAuth: Creating new user in database:", user.email);
+          
+          // Determine role based on admin emails
+          const role: Role = isAdminEmail(user.email) ? "admin" : "user";
+          
+          // Create a new user record
+          await db.collection('users').insertOne({
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: role,
+            emailVerified: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            subscription: {
+              tier: role === 'admin' ? 'premium' : 'free',
+              aiCreditsRemaining: role === 'admin' ? 999 : 5,
+              features: ['basic_features'],
+              expiresAt: null
+            }
+          });
+          
+          console.log("NextAuth: User created successfully:", user.email);
+        } else if (existingUser) {
+          console.log("NextAuth: User already exists in database:", user.email);
+        }
+      } catch (error) {
+        console.error("NextAuth: Error during sign in callback:", error);
+        // Don't fail the signin even if there was a database error
+      }
+      
+      // Always allow sign in to proceed
+      return true;
+    }
   },
   // Ensure we have the correct URL regardless of environment
   secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-build-process',
