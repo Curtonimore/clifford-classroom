@@ -1,0 +1,61 @@
+# ENVIRONMENT VARIABLES GUIDE FOR CLIFFORD CLASSROOM
+
+# This file lists all environment variables needed for your project
+# Copy these to your .env.local file on your other computer
+
+# ==== MONGODB CONNECTION ====
+MONGODB_URI=mongodb+srv://username:password@cliffordclassroom.vauhv.mongodb.net/clifford-classroom?retryWrites=true&w=majority
+# Get this from your MongoDB Atlas dashboard
+# Example format: mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+
+# ==== NEXT-AUTH CONFIGURATION ====
+NEXTAUTH_URL=http://localhost:3000
+# Set to http://localhost:3000 for local development
+# Change to your Vercel deployment URL in production
+
+NEXTAUTH_SECRET=your_nextauth_secret_here
+# This is a random string used to encrypt cookies
+# You can use the same value across computers for consistent sessions
+
+# ==== GOOGLE AUTHENTICATION ====
+GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+# Get these from the Google Cloud Console (https://console.cloud.google.com)
+# Under APIs & Services > Credentials
+
+# ==== ADMIN CONFIGURATION ====
+ADMIN_EMAILS=your_email@example.com,another_email@example.com
+# Comma-separated list of email addresses that should have admin access
+
+# ==== STRIPE CONFIGURATION ====
+STRIPE_SECRET_KEY=sk_test_...
+# Get this from your Stripe Dashboard > Developers > API keys
+
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+# Get this from your Stripe Dashboard > Developers > API keys
+
+STRIPE_WEBHOOK_SECRET=whsec_...
+# Get this after setting up a webhook in the Stripe Dashboard
+# Or by running the Stripe CLI locally with: stripe listen
+
+STRIPE_PRICE_BASIC=price_...
+# The price ID for your basic subscription tier in Stripe
+
+STRIPE_PRICE_PREMIUM=price_...
+# The price ID for your premium subscription tier in Stripe
+
+# ==== AI CONFIGURATION ====
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# Get this from https://console.anthropic.com/
+
+USE_CLAUDE_API=true
+# Set to 'true' to use Claude API for lesson plan generation
+
+# Optional: OpenAI configuration (if needed)
+OPENAI_API_KEY=
+# Get this from https://platform.openai.com/account/api-keys
+
+# IMPORTANT NOTES:
+# 1. Never commit your .env.local file to Git
+# 2. Keep your API keys secure
+# 3. When deploying to Vercel, add these variables to your project settings 

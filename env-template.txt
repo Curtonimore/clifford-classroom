@@ -1,0 +1,31 @@
+# Environment variables for Clifford Classroom
+# Copy this file to .env.local on your other computer
+
+# MongoDB Connection
+MONGODB_URI=mongodb+srv://username:password@cliffordclassroom.vauhv.mongodb.net/clifford-classroom?retryWrites=true&w=majority
+
+# Next Auth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_here
+
+# Google Provider
+GOOGLE_CLIENT_ID=your_google_client_id_here.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+# Admin users
+ADMIN_EMAILS=your_email@example.com,another_email@example.com
+
+# Claude API
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+USE_CLAUDE_API=true
+
+# OpenAI API (Not currently used)
+OPENAI_API_KEY=
+
+# Stripe Configuration
+# Replace these with actual values from your Stripe dashboard
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_BASIC=price_...
+STRIPE_PRICE_PREMIUM=price_... 
