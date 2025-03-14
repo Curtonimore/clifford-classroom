@@ -13,6 +13,27 @@
   ],
   "headers": [
     {
+      "source": "/api/generate-lesson-plan",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Force-Demo-Mode, Content-Type"
+        }
+      ]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         {
