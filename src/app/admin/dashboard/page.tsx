@@ -67,6 +67,9 @@ export default function AdminDashboard() {
     nodeEnv: null
   });
   
+  const [dbStatus, setDbStatus] = useState<any>(null);
+  const [isCheckingDb, setIsCheckingDb] = useState(false);
+  
   useEffect(() => {
     setCurrentPath('admin', 'dashboard');
     
@@ -313,6 +316,25 @@ export default function AdminDashboard() {
     }
   };
   
+  const checkDatabaseConnection = async () => {
+    setIsCheckingDb(true);
+    setDbStatus(null);
+    
+    try {
+      const response = await fetch('/api/debug/mongodb');
+      console.log('DB check response status:', response.status);
+      
+      const data = await response.json();
+      console.log('DB check data:', data);
+      setDbStatus(data);
+    } catch (err) {
+      console.error('Error checking database:', err);
+      setDbStatus({ status: 'error', error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setIsCheckingDb(false);
+    }
+  };
+  
   if (error) {
     return (
       <div className="admin-error">
@@ -386,6 +408,36 @@ export default function AdminDashboard() {
         </div>
         
         <div className="admin-content">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <div className="flex space-x-2">
+              <button
+                onClick={checkDatabaseConnection}
+                disabled={isCheckingDb}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                {isCheckingDb ? 'Checking DB...' : 'Check Database'}
+              </button>
+              <button
+                onClick={fetchUsers}
+                disabled={isLoading}
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              >
+                {isLoading ? 'Refreshing...' : 'Refresh Users'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Database status section */}
+          {dbStatus && (
+            <div className={`mb-6 p-4 rounded border ${dbStatus.status === 'connected' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+              <h2 className="font-bold mb-2">Database Diagnostics</h2>
+              <pre className="whitespace-pre-wrap text-sm overflow-x-auto">
+                {JSON.stringify(dbStatus, null, 2)}
+              </pre>
+            </div>
+          )}
+          
           {activeTab === 'users' && (
             <div className="user-management">
               <div className="panel-header">
