@@ -30,6 +30,27 @@ function isAdminEmail(email: string | null | undefined): boolean {
   return adminEmails.includes(email.toLowerCase());
 }
 
+// Get the base URL for NextAuth
+function getBaseUrl() {
+  // Check for Vercel deployment URL first
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // Then check for explicit NEXTAUTH_URL
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL;
+  }
+  
+  // Fallback for local development
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+  
+  // Final fallback
+  return 'https://clifford-classroom-racf4r0ff-curtis-cliffords-projects.vercel.app';
+}
+
 // Detect build environment
 const isBuildProcess = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_GIT_COMMIT_SHA;
 
@@ -111,16 +132,21 @@ export const authOptions: NextAuthOptions = {
 
     // Make sure the callbackUrl is properly determined based on the environment
     async redirect({ url, baseUrl }) {
-      console.log("NextAuth redirect:", { url, baseUrl });
+      const computedBaseUrl = getBaseUrl();
+      console.log("NextAuth redirect:", { url, baseUrl, computedBaseUrl });
       
-      // If URL starts with baseUrl, it's safe to redirect
-      if (url.startsWith(baseUrl)) return url;
+      // If URL starts with any valid base URL, it's safe to redirect
+      if (url.startsWith(baseUrl) || url.startsWith(computedBaseUrl)) {
+        return url;
+      }
       
       // Allow redirecting to relative URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith("/")) {
+        return `${computedBaseUrl}${url}`;
+      }
       
-      // Otherwise, redirect to the base URL
-      return baseUrl;
+      // Otherwise, redirect to the computed base URL
+      return computedBaseUrl;
     },
 
     // Make sure new users are properly created in the database
