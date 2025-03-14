@@ -986,6 +986,18 @@ export async function POST(request: NextRequest) {
     // Check if Claude API is enabled
     const useClaudeApi = process.env.USE_CLAUDE_API === 'true';
     
+    // Check if demo mode is forced by the header
+    const forceDemoMode = request.headers.get('X-Force-Demo-Mode') === 'true';
+    if (forceDemoMode) {
+      console.log("Demo mode forced by request header");
+      // Return a demo lesson plan immediately without authentication
+      return NextResponse.json({
+        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
+        fromDemo: true,
+        error: null
+      });
+    }
+    
     if (!useClaudeApi) {
       console.log("Claude API is disabled, using demo lesson plans");
       // Return a demo lesson plan to avoid using up Claude API credits
@@ -1011,10 +1023,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user) {
-      console.log("Unauthenticated request - returning error");
+      console.log("Unauthenticated request - returning demo lesson plan");
       return NextResponse.json({
-        error: "You must be logged in to generate lesson plans."
-      }, { status: 401 });
+        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
+        fromDemo: true,
+        error: "Authentication required for real AI generation - using demo lesson plan"
+      });
     }
     
     // Add a quick response header to prevent timeouts
