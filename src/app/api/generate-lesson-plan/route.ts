@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 // Sample lesson plans for different subjects
-const SAMPLE_LESSON_PLANS = {
+export const SAMPLE_LESSON_PLANS = {
   mathematics: `# Fractions Lesson Plan: Understanding Equivalent Fractions
 
 ## Overview
@@ -583,7 +583,7 @@ This lesson introduces students to weather patterns and phenomena, focusing on t
 `;
 
 // Function to generate a demo lesson plan based on the subject
-function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) {
+export function generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes) {
   // Choose the most appropriate template based on subject and topic
   console.log("Generating demo lesson plan for:", { subject, topic, audience, options });
   
