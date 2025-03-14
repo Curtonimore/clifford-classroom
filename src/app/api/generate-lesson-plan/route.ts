@@ -4,6 +4,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // Sample lesson plans for different subjects
 const SAMPLE_LESSON_PLANS = {
   mathematics: `# Fractions Lesson Plan: Understanding Equivalent Fractions

@@ -5,6 +5,8 @@ import stripe from '@/lib/stripe';
 import clientPromise from '@/lib/mongodb-client';
 import { ObjectId } from 'mongodb';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated
