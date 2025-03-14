@@ -20,10 +20,11 @@ export const metadata: Metadata = {
   keywords: "education, AI tools, teaching resources, classroom management, lesson planning",
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
       { url: '/clifford-logo.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/favicon.png',
+    shortcut: '/favicon.ico',
     apple: '/favicon.png',
   },
 };
