@@ -5,6 +5,8 @@ import stripe from '@/lib/stripe';
 import clientPromise from '@/lib/mongodb-client';
 import { ObjectId } from 'mongodb';
 
+export const dynamic = 'force-dynamic';
+
 // This is your Stripe webhook handler for Next.js
 export async function POST(request: NextRequest) {
   try {

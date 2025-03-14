@@ -5,6 +5,8 @@ import { createCheckoutSession, getOrCreateCustomer } from '@/lib/stripe';
 import { ObjectId } from 'mongodb';
 import clientPromise from '@/lib/mongodb-client';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Check if user is authenticated

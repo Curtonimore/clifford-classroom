@@ -6,6 +6,8 @@ import LessonPlan from '@/models/LessonPlan';
 import AIUsage from '@/models/AIUsage';
 import mongoose from 'mongoose';
 
+export const dynamic = 'force-dynamic';
+
 // Define storage limits per subscription tier
 const STORAGE_LIMITS = {
   free: 25,      // Free users can store up to 25 lesson plans

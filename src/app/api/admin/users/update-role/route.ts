@@ -3,6 +3,8 @@ import { getAuthSession } from '@/lib/auth';
 import clientPromise from '@/lib/mongodb-client';
 import mongoose from 'mongoose';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Get the current session

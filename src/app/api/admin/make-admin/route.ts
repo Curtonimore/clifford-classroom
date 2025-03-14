@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import clientPromise from '@/lib/mongodb-client';
 
+export const dynamic = 'force-dynamic';
+
 // IMPORTANT: DELETE THIS FILE AFTER USING IT ONCE
 // This is a temporary route to promote a user to admin
 // It should only be accessible from your local environment

@@ -4,6 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+export const dynamic = 'force-dynamic';
+
 // Simple file system storage for demo purposes
 const saveImageToFileSystem = async (imageBuffer: Buffer, userId: string): Promise<string> => {
   try {

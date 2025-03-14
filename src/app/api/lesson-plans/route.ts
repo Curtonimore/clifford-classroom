@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import clientPromise from '@/lib/mongodb-client';
 
+export const dynamic = 'force-dynamic';
+
 // GET - Get all lesson plans for the current user
 export async function GET(request: NextRequest) {
   try {
