@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 // This is crucial for Vercel deployments as it ensures the route is not statically optimized
 export const fetchCache = 'force-no-store';
 
-// Create the NextAuth handler
+// Simple API route that uses the auth options
 const handler = NextAuth(authOptions);
 
 // Export the handler for GET and POST methods
