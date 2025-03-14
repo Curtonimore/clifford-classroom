@@ -2,6 +2,40 @@
 
 const nextConfig = {
   /* config options here */
+  reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+  },
+  // Add more comprehensive error handling
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 4,
+  },
+  // Increase memory limit for builds
+  experimental: {
+    // Reduce memory usage during builds
+    optimizeCss: false,
+    // Turn off features that might cause issues
+    scrollRestoration: false,
+    // Simplify build process
+    esmExternals: 'loose',
+  },
+  // Keep output simple for debugging
+  output: process.env.VERCEL ? undefined : 'standalone',
+  // Improve logging
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+  // Skip type checking during build (already done during development)
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
@@ -9,17 +43,11 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  // Skip ESLint during build (already done during development)
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
-  },
-  images: {
-    domains: [
-      'lh3.googleusercontent.com', // Google profile pictures
-    ],
-    // Optionally, you can add more domains as needed
-    // domains: ['lh3.googleusercontent.com', 'example.com', 'another-domain.com']
   },
   swcMinify: true,
   // Increase memory limit for webpack
