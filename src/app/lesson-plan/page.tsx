@@ -436,12 +436,11 @@ export default function LessonPlanPage() {
     
     try {
       console.log("Sending API request...");
-      const response = await fetch('/api/generate-lesson-plan', {
+      // Build request parameters
+      const requestParams = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add demo mode header
-          ...(demoMode && { 'X-Force-Demo-Mode': 'true' })
         },
         body: JSON.stringify({
           standards: formData.standards,
@@ -454,7 +453,14 @@ export default function LessonPlanPage() {
           materials: formData.materials,
           notes: formData.notes
         })
-      });
+      };
+      
+      // Add demo mode header only if demo mode is checked
+      if (demoMode) {
+        requestParams.headers['X-Force-Demo-Mode'] = 'true';
+      }
+      
+      const response = await fetch('/api/generate-lesson-plan', requestParams);
       
       console.log("API response received, status:", response.status);
       
@@ -465,13 +471,35 @@ export default function LessonPlanPage() {
       }
       
       const data = await response.json();
-      console.log("Lesson plan data received, length:", data.lessonPlan?.length || 0);
+      console.log("Lesson plan data received:", {
+        length: data.lessonPlan?.length || 0,
+        fromDemo: data.fromDemo,
+        error: data.error,
+        metadata: data.metadata
+      });
       
       setLessonPlan(data.lessonPlan);
-      setLessonPlanMetadata(data.metadata);
-      showNotification(demoMode 
-        ? 'Demo lesson plan generated successfully!' 
-        : 'Lesson plan generated successfully!');
+      setLessonPlanMetadata(data.metadata || {
+        generatedAt: new Date().toISOString(),
+        mode: data.fromDemo ? 'demo' : 'claude'
+      });
+      
+      // Show appropriate notification
+      if (data.fromDemo) {
+        const reason = data.metadata?.reason || '';
+        const isIntended = demoMode;
+        let message = isIntended 
+          ? 'Demo lesson plan generated successfully!' 
+          : 'Using demo lesson plan instead of AI generation';
+          
+        if (reason && !isIntended) {
+          message += ` (Reason: ${reason})`;
+        }
+        
+        showNotification(message, isIntended ? 'success' : 'info');
+      } else {
+        showNotification('AI-generated lesson plan created successfully!', 'success');
+      }
       
       // Scroll to results
       setTimeout(() => {
@@ -483,50 +511,11 @@ export default function LessonPlanPage() {
       // Provide more detailed error message to user
       let errorMessage = 'Failed to generate lesson plan. Please try again.';
       
-      if (error.message && error.message.includes('API Key Error')) {
-        errorMessage = 'API configuration error. Using demo mode instead.';
-        // Try to generate a demo lesson plan automatically
-        setIsGenerating(true);
-        try {
-          const demoResponse = await fetch('/api/generate-lesson-plan', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Force-Demo-Mode': 'true', // Signal to use demo mode
-            },
-            body: JSON.stringify({
-              standards: formData.standards,
-              audience: audienceLabel,
-              time: timeLabel,
-              subject: subjectLabel,
-              topic: topicLabel,
-              objectives: formData.objectives,
-              options: selectedOptionLabels,
-              materials: formData.materials,
-              notes: formData.notes
-            })
-          });
-          
-          if (demoResponse.ok) {
-            const demoData = await demoResponse.json();
-            setLessonPlan(demoData.lessonPlan);
-            setLessonPlanMetadata(demoData.metadata);
-            showNotification('Using demo mode: Lesson plan generated successfully!');
-            
-            // Scroll to results
-            setTimeout(() => {
-              document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
-            }, 500);
-            return;
-          }
-        } catch (demoError) {
-          console.error('Error in demo fallback:', demoError);
-        }
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = `Error: ${error.message}`;
       }
       
-      showNotification(errorMessage);
+      showNotification(errorMessage, 'error');
     } finally {
       setIsGenerating(false);
     }

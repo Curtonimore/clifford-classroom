@@ -14,6 +14,8 @@ export interface SubscriptionInfo {
   aiCreditsRemaining: number;
 }
 
+export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+
 // Define types for our context state
 interface AppContextType {
   // Navigation state
@@ -27,7 +29,8 @@ interface AppContextType {
   
   // Global notifications
   notification: string | null;
-  showNotification: (message: string) => void;
+  notificationType: NotificationType;
+  showNotification: (message: string, type?: NotificationType) => void;
   clearNotification: () => void;
   
   // Auth helper functions
@@ -54,6 +57,7 @@ const AppContext = createContext<AppContextType>({
   toggleMobileMenu: () => {},
   
   notification: null,
+  notificationType: 'info',
   showNotification: () => {},
   clearNotification: () => {},
   
@@ -82,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   // Notification system
   const [notification, setNotification] = useState<string | null>(null);
+  const [notificationType, setNotificationType] = useState<NotificationType>('info');
   
   // Subscription state
   const [userSubscription, setUserSubscription] = useState<SubscriptionInfo | null>(null);
@@ -233,8 +238,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
   
   // Notification functions
-  const showNotification = (message: string) => {
+  const showNotification = (message: string, type: NotificationType = 'info') => {
     setNotification(message);
+    setNotificationType(type);
     // Auto-clear after 5 seconds
     setTimeout(() => {
       setNotification(null);
@@ -256,6 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleMobileMenu,
       
       notification,
+      notificationType,
       showNotification,
       clearNotification,
       
