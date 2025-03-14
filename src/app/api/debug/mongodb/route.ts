@@ -1,88 +1,95 @@
+import { NextRequest, NextResponse } from 'next/server';
+import clientPromise from '@/lib/mongodb-client';
+import { Document } from 'mongodb';
+
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb-client';
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log("DEBUG: MongoDB connection check started");
+    console.log("MongoDB Debug API: Attempting to connect to MongoDB");
     
-    // Check if MONGODB_URI exists
-    const hasUri = !!process.env.MONGODB_URI;
-    console.log("DEBUG: MONGODB_URI exists:", hasUri);
+    // Connection info
+    const connectionInfo = {
+      uri: process.env.MONGODB_URI ? 
+        (process.env.MONGODB_URI.startsWith('mongodb+srv://') ? 'Valid format' : 'Invalid format') : 
+        'Missing URI',
+      uriExists: !!process.env.MONGODB_URI,
+    };
     
-    // Check URI format (without revealing actual credentials)
-    let uriFormat = 'Missing';
-    if (hasUri && process.env.MONGODB_URI) {
-      const uri = process.env.MONGODB_URI;
-      if (uri.startsWith('mongodb+srv://')) {
-        uriFormat = 'Valid mongodb+srv://';
-      } else if (uri.startsWith('mongodb://')) {
-        uriFormat = 'Valid mongodb://';
-      } else {
-        uriFormat = 'Invalid format';
-      }
-    }
-    console.log("DEBUG: MongoDB URI format:", uriFormat);
+    console.log("MongoDB Debug API: Connection info:", connectionInfo);
     
-    // Attempt to connect
-    console.log("DEBUG: Attempting to connect to MongoDB...");
+    // Try to connect to MongoDB
     let client;
+    let collections: any[] = [];
+    let connectionSuccess = false;
+    let dbInfo: Record<string, any> = {};
+    let errorMessage: string | null = null;
+    
     try {
       client = await clientPromise;
-      console.log("DEBUG: MongoDB client created successfully");
-    
-      // Test the connection by listing databases
+      console.log("MongoDB Debug API: Client created successfully", !!client);
+      
       if (client) {
-        const admin = client.db().admin();
-        const dbs = await admin.listDatabases();
-        
-        console.log("DEBUG: Successfully connected to MongoDB");
-        console.log(`DEBUG: Found ${dbs.databases.length} databases`);
-        
-        // Check for users collection in our database
         const db = client.db();
-        const collections = await db.listCollections().toArray();
-        console.log(`DEBUG: Found ${collections.length} collections`);
+        connectionSuccess = true;
         
-        const hasUsersCollection = collections.some(c => c.name === 'users');
-        console.log(`DEBUG: Users collection exists: ${hasUsersCollection}`);
+        // Get collections
+        collections = await db.listCollections().toArray();
+        console.log(`MongoDB Debug API: Found ${collections.length} collections`);
         
-        if (hasUsersCollection) {
-          // Count users
+        // Check users collection specifically
+        const usersCollection = collections.find(c => c.name === 'users');
+        if (usersCollection) {
           const userCount = await db.collection('users').countDocuments();
-          console.log(`DEBUG: User count: ${userCount}`);
+          console.log(`MongoDB Debug API: Users collection exists with ${userCount} documents`);
+          
+          // Get a sample user (first one) with limited fields
+          const sampleUser = await db.collection('users').findOne(
+            {}, 
+            { projection: { name: 1, email: 1, role: 1, _id: 0 } }
+          ) as Document | null;
+          
+          dbInfo = {
+            usersCollection: true,
+            userCount,
+            sampleUser: sampleUser ? { 
+              name: sampleUser.name || 'unnamed',
+              role: sampleUser.role || 'undefined',
+              email: sampleUser.email ? `${String(sampleUser.email).substring(0, 3)}...` : 'undefined'
+            } : null
+          };
+        } else {
+          console.log("MongoDB Debug API: Users collection does not exist");
+          dbInfo = { usersCollection: false };
         }
-        
-        // Return success with minimal info
-        return NextResponse.json({
-          status: "connected",
-          databaseCount: dbs.databases.length,
-          collectionCount: collections.length,
-          hasUsersCollection,
-          uri: hasUri ? "URI exists and has valid format" : "URI missing"
-        });
-      } else {
-        console.error("DEBUG: Client is null despite no thrown error");
-        return NextResponse.json({
-          status: "error",
-          error: "MongoDB client is null",
-          uri: hasUri ? "URI exists but connection failed" : "URI missing"
-        }, { status: 500 });
       }
-    } catch (error) {
-      console.error("DEBUG: MongoDB connection error:", error);
-      return NextResponse.json({
-        status: "error",
-        error: error instanceof Error ? error.message : String(error),
-        uri: hasUri ? "URI exists but connection failed" : "URI missing"
-      }, { status: 500 });
+    } catch (err) {
+      console.error("MongoDB Debug API: Error connecting to MongoDB:", err);
+      errorMessage = err instanceof Error ? err.message : String(err);
+      connectionSuccess = false;
     }
-  } catch (error) {
-    console.error("DEBUG: Unexpected error:", error);
+    
+    // Return debug info
     return NextResponse.json({
-      status: "error",
-      error: error instanceof Error ? error.message : String(error),
-    }, { status: 500 });
+      timestamp: new Date().toISOString(),
+      connectionInfo,
+      connectionSuccess,
+      collections: collections.map(c => c.name),
+      dbInfo,
+      error: errorMessage,
+      env: {
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV,
+      }
+    });
+  } catch (error) {
+    console.error("MongoDB Debug API: Unexpected error:", error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to check MongoDB connection',
+        details: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
   }
 } 
