@@ -26,6 +26,5 @@
     "domains": ["lh3.googleusercontent.com"]
   },
   "framework": "nextjs",
-  "buildCommand": "next build",
-  "serverlessFunctionMaxDuration": 60
+  "buildCommand": "next build"
 } 
