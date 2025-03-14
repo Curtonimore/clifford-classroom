@@ -38,8 +38,26 @@ export async function GET(request: NextRequest) {
     }
     
     // Connect to MongoDB
-    console.log("Admin Users API: Connecting to MongoDB");
-    const client = await clientPromise;
+    console.log("Admin Users API: Attempting to connect to MongoDB");
+    console.log("Admin Users API: MONGODB_URI exists:", !!process.env.MONGODB_URI);
+    console.log("Admin Users API: Connection string format:", process.env.MONGODB_URI ? 
+      (process.env.MONGODB_URI.startsWith('mongodb+srv://') ? 'Valid format' : 'Invalid format') : 
+      'Missing URI');
+    
+    let client;
+    try {
+      client = await clientPromise;
+      console.log("Admin Users API: MongoDB client created successfully:", !!client);
+    } catch (connectionError) {
+      console.error("Admin Users API: Failed to create MongoDB client:", connectionError);
+      return NextResponse.json(
+        { 
+          error: 'Database connection error',
+          details: connectionError instanceof Error ? connectionError.message : String(connectionError)
+        },
+        { status: 500 }
+      );
+    }
     
     // Create an empty users array as fallback
     let users: Document[] = [];
@@ -52,6 +70,8 @@ export async function GET(request: NextRequest) {
       try {
         // Check if the users collection exists
         const collections = await db.listCollections({ name: 'users' }).toArray();
+        console.log("Admin Users API: Users collection exists:", collections.length > 0);
+        
         if (collections.length === 0) {
           console.warn("Admin Users API: Users collection doesn't exist");
           return NextResponse.json({ users: [] });
@@ -75,7 +95,8 @@ export async function GET(request: NextRequest) {
         console.error("Admin Users API: Database error", dbError);
         return NextResponse.json({ 
           users: [],
-          error: 'Database error' 
+          error: 'Database error',
+          details: dbError instanceof Error ? dbError.message : String(dbError)
         });
       }
     } else {
