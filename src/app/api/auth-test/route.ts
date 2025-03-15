@@ -1,45 +1,49 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
-// This endpoint will help us diagnose what's wrong with NextAuth
-export async function GET() {
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
+export async function GET(request: NextRequest) {
   try {
-    // Check environment variables (without revealing actual values)
-    const checks = {
-      nextauth: {
-        secret: !!process.env.NEXTAUTH_SECRET,
-        url: !!process.env.NEXTAUTH_URL ? process.env.NEXTAUTH_URL : null,
-      },
-      google: {
-        clientId: !!process.env.GOOGLE_CLIENT_ID,
-        clientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-      },
-      // Get the actual request URL and host
-      request: {
-        host: process.env.VERCEL_URL || 'localhost',
-        nextAuthUrl: process.env.NEXTAUTH_URL,
-      },
-      // Check for any API_ROUTE environment variable
-      vercelUrl: process.env.VERCEL_URL,
-      // Check current Node environment
-      nodeEnv: process.env.NODE_ENV,
-    };
-
-    // Check if all required environment variables are present
-    const allPresent = 
-      checks.nextauth.secret && 
-      checks.nextauth.url && 
-      checks.google.clientId && 
-      checks.google.clientSecret;
-
+    // Get the current session
+    const session = await getServerSession(authOptions);
+    
+    // Get the NextAuth URL from the environment
+    const nextAuthUrl = process.env.NEXTAUTH_URL || '';
+    
+    // Get the Google client ID
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+    
+    // Construct the Google OAuth URL manually
+    const googleOAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${encodeURIComponent(googleClientId)}` +
+      `&redirect_uri=${encodeURIComponent(`${nextAuthUrl}/api/auth/callback/google`)}` +
+      `&response_type=code` +
+      `&scope=${encodeURIComponent('openid email profile')}` +
+      `&prompt=consent`;
+    
+    // Return the diagnostic information
     return NextResponse.json({
-      status: 'success',
-      allRequiredVarsPresent: allPresent,
-      checks,
+      timestamp: new Date().toISOString(),
+      authenticated: !!session,
+      user: session?.user ? {
+        email: session.user.email,
+        role: session.user.role,
+      } : null,
+      nextAuthUrl,
+      googleOAuthUrl,
+      message: "Auth test completed successfully"
     });
   } catch (error) {
+    console.error('Auth test error:', error);
+    
     return NextResponse.json({
-      status: 'error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
+      error: 'Failed to run auth test',
+      message: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    }, { status: 500 });
   }
 } 
