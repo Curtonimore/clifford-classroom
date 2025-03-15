@@ -74,6 +74,21 @@ export default function AuthLinkPage() {
         <ul style={{ listStyleType: "none", padding: 0 }}>
           <li style={{ marginBottom: "10px" }}>
             <a 
+              href="/direct-google"
+              style={{ 
+                backgroundColor: "#9C27B0", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Hardcoded Google OAuth
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
               href="/direct-oauth"
               style={{ 
                 backgroundColor: "#FF5722", 
@@ -132,6 +147,42 @@ export default function AuthLinkPage() {
               Direct Login Page
             </a>
           </li>
+        </ul>
+      </div>
+      
+      <div style={{ marginTop: "30px" }}>
+        <h2>API Endpoints</h2>
+        <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/env-check"
+              style={{ 
+                backgroundColor: "#009688", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Environment Check
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/auth-test"
+              style={{ 
+                backgroundColor: "#00BCD4", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Auth Test
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/api/auth-config-check"
@@ -149,9 +200,9 @@ export default function AuthLinkPage() {
           </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
-              href="/api/test-endpoint"
+              href="/api/method-test"
               style={{ 
-                backgroundColor: "#009688", 
+                backgroundColor: "#03A9F4", 
                 color: "white", 
                 padding: "10px 15px", 
                 borderRadius: "4px", 
@@ -159,22 +210,20 @@ export default function AuthLinkPage() {
                 display: "inline-block"
               }}
             >
-              Test Endpoint
+              Method Test API
             </a>
           </li>
         </ul>
       </div>
       
-      <div style={{ marginTop: "30px" }}>
-        <a 
-          href="/"
-          style={{ 
-            color: "#4285F4", 
-            textDecoration: "none"
-          }}
-        >
-          Return to Home
-        </a>
+      <div style={{ marginTop: "30px", marginBottom: "50px" }}>
+        <h3>Troubleshooting Tips</h3>
+        <ul>
+          <li>If you're seeing 405 errors, check that your API routes are correctly handling both GET and POST methods.</li>
+          <li>If you're seeing 500 errors, check your environment variables and server logs.</li>
+          <li>If the login button doesn't work, check for JavaScript errors in the console.</li>
+          <li>The Environment Check endpoint will show you if your environment variables are set correctly.</li>
+        </ul>
       </div>
     </div>
   );
