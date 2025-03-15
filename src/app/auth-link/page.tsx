@@ -3,6 +3,33 @@ export default function AuthLinkPage() {
     <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
       <h1>NextAuth Direct Links</h1>
       
+      <div style={{ 
+        backgroundColor: "#e8f5e9", 
+        color: "#2e7d32", 
+        padding: "15px", 
+        borderRadius: "4px", 
+        marginBottom: "20px",
+        marginTop: "20px",
+        border: "1px solid #a5d6a7"
+      }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>🔍 Configuration Issue Detected</h3>
+        <p style={{ margin: "0 0 10px 0" }}>We've identified a potential issue with your Google OAuth configuration. The redirect URI mismatch is likely causing authentication failures.</p>
+        <a 
+          href="/google-oauth-fix"
+          style={{ 
+            backgroundColor: "#4CAF50", 
+            color: "white", 
+            padding: "10px 15px", 
+            borderRadius: "4px", 
+            textDecoration: "none",
+            display: "inline-block",
+            fontWeight: "bold"
+          }}
+        >
+          View Fix Instructions
+        </a>
+      </div>
+      
       <div style={{ marginTop: "20px" }}>
         <h2>Sign In Links</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
@@ -72,6 +99,21 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>Debug Pages</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/google-oauth-fix"
+              style={{ 
+                backgroundColor: "#8BC34A", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Google OAuth Fix
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/direct-google"
@@ -223,6 +265,7 @@ export default function AuthLinkPage() {
           <li>If you're seeing 500 errors, check your environment variables and server logs.</li>
           <li>If the login button doesn't work, check for JavaScript errors in the console.</li>
           <li>The Environment Check endpoint will show you if your environment variables are set correctly.</li>
+          <li><strong>Redirect URI Mismatch:</strong> Make sure the redirect URIs in your Google Cloud Console match the ones used by your application.</li>
         </ul>
       </div>
     </div>
