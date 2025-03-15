@@ -30,6 +30,33 @@ export default function AuthLinkPage() {
         </a>
       </div>
       
+      <div style={{ 
+        backgroundColor: "#e3f2fd", 
+        color: "#0d47a1", 
+        padding: "15px", 
+        borderRadius: "4px", 
+        marginBottom: "20px",
+        marginTop: "20px",
+        border: "1px solid #90caf9"
+      }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>⚠️ HTTP 405 Error Detected</h3>
+        <p style={{ margin: "0 0 10px 0" }}>You're experiencing HTTP 405 (Method Not Allowed) errors, which suggests an issue with how your server is handling API requests.</p>
+        <a 
+          href="/nextauth-test"
+          style={{ 
+            backgroundColor: "#2196F3", 
+            color: "white", 
+            padding: "10px 15px", 
+            borderRadius: "4px", 
+            textDecoration: "none",
+            display: "inline-block",
+            fontWeight: "bold"
+          }}
+        >
+          Test API Methods
+        </a>
+      </div>
+      
       <div style={{ marginTop: "20px" }}>
         <h2>Sign In Links</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
@@ -99,6 +126,21 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>Debug Pages</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/nextauth-test"
+              style={{ 
+                backgroundColor: "#1976D2", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              NextAuth API Method Test
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/google-oauth-fix"
@@ -195,6 +237,21 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>API Endpoints</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/nextauth-test"
+              style={{ 
+                backgroundColor: "#00838F", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              NextAuth Test API
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/api/env-check"
