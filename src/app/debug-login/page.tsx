@@ -71,9 +71,9 @@ export default function DebugLoginPage() {
   const fetchDebugInfo = async () => {
     try {
       setIsLoadingDebug(true);
-      addLog("Fetching debug info from /api/auth-debug...");
+      addLog("Fetching debug info from /api/simple-debug...");
       
-      const response = await fetch('/api/auth-debug');
+      const response = await fetch('/api/simple-debug');
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
@@ -216,6 +216,7 @@ export default function DebugLoginPage() {
           <div>
             <strong>Debug Endpoints:</strong>
             <ul style={{ marginTop: "5px", marginBottom: "5px" }}>
+              <li><a href="/api/simple-debug" target="_blank" style={{ color: "#4285F4" }}>/api/simple-debug</a> - Simple debug endpoint (no NextAuth)</li>
               <li><a href="/api/auth-debug" target="_blank" style={{ color: "#4285F4" }}>/api/auth-debug</a> - Auth configuration</li>
               <li><a href="/api/debug-auth" target="_blank" style={{ color: "#4285F4" }}>/api/debug-auth</a> - Alternative debug endpoint</li>
               <li><a href="/auth-test" target="_blank" style={{ color: "#4285F4" }}>/auth-test</a> - Basic auth test page</li>
