@@ -74,6 +74,21 @@ export default function AuthLinkPage() {
         <ul style={{ listStyleType: "none", padding: 0 }}>
           <li style={{ marginBottom: "10px" }}>
             <a 
+              href="/method-test"
+              style={{ 
+                backgroundColor: "#E91E63", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              HTTP Method Test
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
               href="/login-debug"
               style={{ 
                 backgroundColor: "#673AB7", 
