@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/_next') || 
     pathname.includes('/api/') ||
+    pathname.startsWith('/api/auth/') ||  // Explicitly skip NextAuth routes
     pathname.endsWith('.svg') ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.jpg') ||
@@ -65,6 +66,7 @@ export const config = {
      * Match all request paths except:
      * - Already excluded in the middleware function
      * - Pre-defined Next.js paths like _next/static, _next/image, favicon.ico
+     * - NextAuth API routes
      */
     '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
   ],

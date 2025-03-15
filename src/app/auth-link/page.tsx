@@ -57,6 +57,49 @@ export default function AuthLinkPage() {
         </a>
       </div>
       
+      <div style={{ 
+        backgroundColor: "#ffebee", 
+        color: "#c62828", 
+        padding: "15px", 
+        borderRadius: "4px", 
+        marginBottom: "20px",
+        marginTop: "20px",
+        border: "1px solid #ef9a9a"
+      }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>🛠️ Middleware Fix Applied</h3>
+        <p style={{ margin: "0 0 10px 0" }}>We've updated the middleware to explicitly skip NextAuth API routes. This should fix the HTTP 405 errors.</p>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <a 
+            href="/api/auth-direct-test/signin"
+            style={{ 
+              backgroundColor: "#F44336", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Try Direct NextAuth Sign In
+          </a>
+          <a 
+            href="/api/auth-direct-test/signin/google"
+            style={{ 
+              backgroundColor: "#D32F2F", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Try Direct Google Sign In
+          </a>
+        </div>
+      </div>
+      
       <div style={{ marginTop: "20px" }}>
         <h2>Sign In Links</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
@@ -239,6 +282,21 @@ export default function AuthLinkPage() {
         <ul style={{ listStyleType: "none", padding: 0 }}>
           <li style={{ marginBottom: "10px" }}>
             <a 
+              href="/api/auth-direct-test/session"
+              style={{ 
+                backgroundColor: "#C2185B", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Direct NextAuth Session
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
               href="/api/nextauth-test"
               style={{ 
                 backgroundColor: "#00838F", 
@@ -323,6 +381,7 @@ export default function AuthLinkPage() {
           <li>If the login button doesn't work, check for JavaScript errors in the console.</li>
           <li>The Environment Check endpoint will show you if your environment variables are set correctly.</li>
           <li><strong>Redirect URI Mismatch:</strong> Make sure the redirect URIs in your Google Cloud Console match the ones used by your application.</li>
+          <li><strong>Middleware Issues:</strong> Make sure your middleware is not interfering with NextAuth API routes.</li>
         </ul>
       </div>
     </div>
