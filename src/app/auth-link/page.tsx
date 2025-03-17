@@ -380,6 +380,21 @@ export default function AuthLinkPage() {
               Direct Google OAuth Test (New)
             </a>
           </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/auth-direct-test"
+              style={{ 
+                backgroundColor: "#3949AB", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Direct Auth Test (No MongoDB)
+            </a>
+          </li>
         </ul>
       </div>
       
@@ -519,6 +534,36 @@ export default function AuthLinkPage() {
               }}
             >
               Custom Auth Handler
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/db-connection-test"
+              style={{ 
+                backgroundColor: "#673AB7", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Test MongoDB Connection
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/auth-direct/session"
+              style={{ 
+                backgroundColor: "#3F51B5", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Direct Auth Session
             </a>
           </li>
         </ul>
