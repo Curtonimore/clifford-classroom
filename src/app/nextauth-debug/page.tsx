@@ -7,138 +7,242 @@ export default function NextAuthDebugPage() {
   const { data: session, status } = useSession();
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [providers, setProviders] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [testResults, setTestResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch CSRF token on component mount
+  // Fetch CSRF token
   useEffect(() => {
     const fetchCsrfToken = async () => {
       try {
-        const response = await fetch('/api/auth/csrf');
-        if (response.ok) {
-          const data = await response.json();
-          setCsrfToken(data.csrfToken);
-          addTestResult('CSRF Token Fetch', true, data);
-        } else {
-          setCsrfToken(null);
-          addTestResult('CSRF Token Fetch', false, { status: response.status, statusText: response.statusText });
-        }
+        const response = await fetch("/api/auth/csrf");
+        const data = await response.json();
+        setCsrfToken(data.csrfToken);
       } catch (err) {
-        setCsrfToken(null);
-        addTestResult('CSRF Token Fetch', false, { error: String(err) });
-      }
-    };
-
-    const fetchProviders = async () => {
-      try {
-        const response = await fetch('/api/auth/providers');
-        if (response.ok) {
-          const data = await response.json();
-          setProviders(data);
-          addTestResult('Providers Fetch', true, data);
-        } else {
-          setProviders(null);
-          addTestResult('Providers Fetch', false, { status: response.status, statusText: response.statusText });
-        }
-      } catch (err) {
-        setProviders(null);
-        addTestResult('Providers Fetch', false, { error: String(err) });
+        console.error("Error fetching CSRF token:", err);
       }
     };
 
     fetchCsrfToken();
+  }, []);
+
+  // Fetch providers
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const response = await fetch("/api/auth/providers");
+        const data = await response.json();
+        setProviders(data);
+      } catch (err) {
+        console.error("Error fetching providers:", err);
+      }
+    };
+
     fetchProviders();
   }, []);
 
-  const addTestResult = (name: string, success: boolean, data: any) => {
-    setTestResults(prev => [
-      ...prev,
-      {
-        name,
-        success,
-        data,
-        timestamp: new Date().toISOString()
-      }
-    ]);
-  };
-
-  const handleSignIn = async (provider: string) => {
+  // Handle sign in
+  const handleSignIn = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setTestResults([
+        ...testResults,
+        {
+          test: "Sign In (google)",
+          timestamp: new Date().toISOString(),
+          status: "pending",
+          data: null
+        }
+      ]);
+
+      const result = await signIn("google", { redirect: false });
       
-      console.log(`Signing in with ${provider}...`);
-      
-      // Log the signIn function to see if it's available
-      console.log('signIn function:', signIn);
-      
-      // Call the signIn function with the provider
-      const result = await signIn(provider, { redirect: false });
-      
-      console.log('Sign in result:', result);
-      
-      if (result?.error) {
-        setError(result.error);
-        addTestResult(`Sign In (${provider})`, false, result);
-      } else {
-        addTestResult(`Sign In (${provider})`, true, result);
-      }
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => item.status === "pending");
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: result?.error ? "failed" : "success",
+            data: result?.error ? { error: result.error } : result
+          };
+        }
+        return updated;
+      });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      console.error('Sign in error:', err);
-      addTestResult(`Sign In (${provider})`, false, { error: errorMessage });
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : String(err));
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => item.status === "pending");
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "failed",
+            data: { error: err instanceof Error ? err.message : String(err) }
+          };
+        }
+        return updated;
+      });
     }
   };
 
+  // Handle sign out
   const handleSignOut = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Signing out...');
-      
-      // Call the signOut function
-      const result = await signOut({ redirect: false });
-      
-      console.log('Sign out result:', result);
-      addTestResult('Sign Out', true, result);
+      await signOut({ redirect: false });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      console.error('Sign out error:', err);
-      addTestResult('Sign Out', false, { error: errorMessage });
-    } finally {
-      setLoading(false);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
-  const checkSession = async () => {
+  // Test providers fetch
+  const testProvidersFetch = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      const timestamp = new Date().toISOString();
+      setTestResults([
+        ...testResults,
+        {
+          test: "Providers Fetch",
+          timestamp,
+          status: "pending",
+          data: null
+        }
+      ]);
+
+      const response = await fetch("/api/auth/providers");
+      const data = await response.json();
       
-      console.log('Checking session...');
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => 
+          item.test === "Providers Fetch" && item.timestamp === timestamp
+        );
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "success",
+            data
+          };
+        }
+        return updated;
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
       
-      const response = await fetch('/api/auth/session');
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => item.status === "pending");
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "failed",
+            data: { error: errorMessage }
+          };
+        }
+        return updated;
+      });
+    }
+  };
+
+  // Test CSRF token fetch
+  const testCsrfFetch = async () => {
+    try {
+      const timestamp = new Date().toISOString();
+      setTestResults([
+        ...testResults,
+        {
+          test: "CSRF Token Fetch",
+          timestamp,
+          status: "pending",
+          data: null
+        }
+      ]);
+
+      const response = await fetch("/api/auth/csrf");
+      const data = await response.json();
       
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => 
+          item.test === "CSRF Token Fetch" && item.timestamp === timestamp
+        );
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "success",
+            data
+          };
+        }
+        return updated;
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+      
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => item.status === "pending");
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "failed",
+            data: { error: errorMessage }
+          };
+        }
+        return updated;
+      });
+    }
+  };
+
+  // Test session check
+  const testSessionCheck = async () => {
+    try {
+      const timestamp = new Date().toISOString();
+      setTestResults([
+        ...testResults,
+        {
+          test: "Session Check",
+          timestamp,
+          status: "pending",
+          data: null
+        }
+      ]);
+
+      const response = await fetch("/api/auth/session");
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      
       const data = await response.json();
-      console.log('Session data:', data);
-      addTestResult('Session Check', true, data);
+      
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => 
+          item.test === "Session Check" && item.timestamp === timestamp
+        );
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "success",
+            data
+          };
+        }
+        return updated;
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(errorMessage);
-      console.error('Session check error:', err);
-      addTestResult('Session Check', false, { error: errorMessage });
-    } finally {
-      setLoading(false);
+      
+      setTestResults(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(item => item.status === "pending");
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            status: "failed",
+            data: { error: errorMessage }
+          };
+        }
+        return updated;
+      });
     }
   };
 
@@ -150,7 +254,7 @@ export default function NextAuthDebugPage() {
         <div style={{ 
           backgroundColor: "#ffebee", 
           color: "#c62828", 
-          padding: "10px", 
+          padding: "15px", 
           borderRadius: "4px", 
           marginBottom: "20px" 
         }}>
@@ -161,76 +265,54 @@ export default function NextAuthDebugPage() {
       <div style={{ marginBottom: "30px" }}>
         <h2>Session Status</h2>
         <p>Current session status: <strong>{status}</strong></p>
-        
-        {session && (
-          <div style={{ 
-            backgroundColor: "#e8f5e9", 
-            color: "#2e7d32", 
-            padding: "10px", 
-            borderRadius: "4px", 
-            marginTop: "10px" 
-          }}>
-            <h3>Session Data</h3>
-            <pre style={{ 
-              backgroundColor: "#f5f5f5", 
-              padding: "10px", 
-              borderRadius: "4px", 
-              overflow: "auto",
-              maxHeight: "200px"
-            }}>
-              {JSON.stringify(session, null, 2)}
-            </pre>
+        {status === "authenticated" && session && (
+          <div>
+            <p><strong>User:</strong> {session.user?.name} ({session.user?.email})</p>
+            <pre>{JSON.stringify(session, null, 2)}</pre>
           </div>
         )}
       </div>
       
       <div style={{ marginBottom: "30px" }}>
         <h2>Authentication Actions</h2>
-        
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <button
-            onClick={() => handleSignIn('google')}
-            disabled={loading}
-            style={{
-              backgroundColor: "#4285F4",
-              color: "white",
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button 
+            onClick={handleSignIn}
+            style={{ 
+              backgroundColor: "#4285F4", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
               border: "none",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1
+              cursor: "pointer"
             }}
           >
             Sign In with Google
           </button>
           
-          <button
+          <button 
             onClick={handleSignOut}
-            disabled={loading || status !== 'authenticated'}
-            style={{
-              backgroundColor: "#EA4335",
-              color: "white",
+            style={{ 
+              backgroundColor: "#EA4335", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
               border: "none",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              cursor: (loading || status !== 'authenticated') ? "not-allowed" : "pointer",
-              opacity: (loading || status !== 'authenticated') ? 0.7 : 1
+              cursor: "pointer"
             }}
           >
             Sign Out
           </button>
           
-          <button
-            onClick={checkSession}
-            disabled={loading}
-            style={{
-              backgroundColor: "#FBBC05",
-              color: "white",
+          <button 
+            onClick={testSessionCheck}
+            style={{ 
+              backgroundColor: "#FBBC05", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
               border: "none",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1
+              cursor: "pointer"
             }}
           >
             Check Session
@@ -244,67 +326,81 @@ export default function NextAuthDebugPage() {
         <div style={{ marginBottom: "20px" }}>
           <h3>CSRF Token</h3>
           {csrfToken ? (
-            <p style={{ wordBreak: "break-all" }}>{csrfToken}</p>
+            <p>{csrfToken}</p>
           ) : (
-            <p>No CSRF token available</p>
+            <p>Loading CSRF token...</p>
           )}
+          
+          <button 
+            onClick={testCsrfFetch}
+            style={{ 
+              backgroundColor: "#34A853", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              border: "none",
+              cursor: "pointer",
+              marginTop: "10px"
+            }}
+          >
+            Test CSRF Token Fetch
+          </button>
         </div>
         
-        <div style={{ marginBottom: "20px" }}>
+        <div>
           <h3>Available Providers</h3>
           {providers ? (
-            <pre style={{ 
-              backgroundColor: "#f5f5f5", 
-              padding: "10px", 
-              borderRadius: "4px", 
-              overflow: "auto",
-              maxHeight: "200px"
-            }}>
-              {JSON.stringify(providers, null, 2)}
-            </pre>
+            <pre>{JSON.stringify(providers, null, 2)}</pre>
           ) : (
-            <p>No providers available</p>
+            <p>Loading providers...</p>
           )}
+          
+          <button 
+            onClick={testProvidersFetch}
+            style={{ 
+              backgroundColor: "#34A853", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              border: "none",
+              cursor: "pointer",
+              marginTop: "10px"
+            }}
+          >
+            Test Providers Fetch
+          </button>
         </div>
       </div>
       
       <div style={{ marginBottom: "30px" }}>
         <h2>Test Results</h2>
-        
-        {testResults.length === 0 ? (
-          <p>No tests run yet</p>
-        ) : (
+        {testResults.length > 0 ? (
           <div>
             {testResults.map((result, index) => (
               <div 
                 key={index}
                 style={{ 
-                  backgroundColor: result.success ? "#e8f5e9" : "#ffebee", 
-                  color: result.success ? "#2e7d32" : "#c62828", 
-                  padding: "10px", 
+                  backgroundColor: result.status === "success" ? "#e8f5e9" : result.status === "failed" ? "#ffebee" : "#e3f2fd",
+                  padding: "15px", 
                   borderRadius: "4px", 
-                  marginBottom: "10px" 
+                  marginBottom: "10px",
+                  border: result.status === "success" ? "1px solid #a5d6a7" : result.status === "failed" ? "1px solid #ef9a9a" : "1px solid #90caf9"
                 }}
               >
-                <h4 style={{ margin: "0 0 5px 0" }}>
-                  {result.name} - {result.success ? "Success" : "Failed"}
-                </h4>
-                <p style={{ margin: "0 0 5px 0", fontSize: "0.8em" }}>
-                  {result.timestamp}
-                </p>
-                <pre style={{ 
-                  backgroundColor: "#f5f5f5", 
-                  padding: "10px", 
-                  borderRadius: "4px", 
-                  overflow: "auto",
-                  maxHeight: "150px",
-                  margin: "5px 0 0 0"
-                }}>
-                  {JSON.stringify(result.data, null, 2)}
-                </pre>
+                <h3 style={{ margin: "0 0 10px 0" }}>
+                  {result.test} - {result.status === "success" ? "Success" : result.status === "failed" ? "Failed" : "Pending"}
+                </h3>
+                <p style={{ margin: "0 0 10px 0" }}>{result.timestamp}</p>
+                {result.data && (
+                  <pre style={{ margin: 0, overflow: "auto" }}>
+                    {JSON.stringify(result.data, null, 2)}
+                  </pre>
+                )}
               </div>
             ))}
           </div>
+        ) : (
+          <p>No tests run yet. Use the buttons above to test NextAuth functionality.</p>
         )}
       </div>
       
@@ -319,6 +415,10 @@ export default function NextAuthDebugPage() {
           Back to Auth Links
         </a>
       </div>
+      
+      <footer style={{ marginTop: "50px", borderTop: "1px solid #eee", paddingTop: "20px", color: "#666" }}>
+        Clifford Classroom © 2025 - Educational Resources for Modern Educators
+      </footer>
     </div>
   );
 } 
