@@ -35,9 +35,11 @@ const logAndCheckURI = () => {
     return false;
   }
   
-  // Log parts of the URI safely
+  // Log parts of the URI safely without revealing credentials
   const uri = process.env.MONGODB_URI;
-  console.log(`MongoDB Client: URI exists and starts with: ${uri.substring(0, 15)}...`);
+  const uriStart = uri.startsWith('mongodb+srv://') ? 'mongodb+srv://' : 'mongodb://';
+  // Only log that the URI exists and its protocol, not any part that might contain credentials
+  console.log(`MongoDB Client: URI exists with protocol: ${uriStart}`);
   
   // Basic validation
   if (!uri.startsWith('mongodb+srv://') && !uri.startsWith('mongodb://')) {
@@ -76,12 +78,13 @@ let clientPromise: Promise<MongoClient>;
 async function createConnectedClient(): Promise<MongoClient> {
   console.log('Creating new MongoDB client connection');
   
-  // Use URI from environment or a dummy value for build time
-  // (the dummy will never actually connect in production)
-  const uri = process.env.MONGODB_URI || 'mongodb+srv://dummy:dummy@dummy.mongodb.net/dummy';
+  // Only use the URI from environment, no hardcoded fallbacks with dummy credentials
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not defined');
+  }
   
-  // Create the client
-  const newClient = new MongoClient(uri, options);
+  // Create the client with the environment URI only
+  const newClient = new MongoClient(process.env.MONGODB_URI, options);
   
   try {
     // Connect and return the connected client
@@ -101,6 +104,12 @@ if (process.env.NODE_ENV === 'production') {
   
   clientPromise = (async () => {
     try {
+      // Check if MONGODB_URI is available before attempting to connect
+      if (!process.env.MONGODB_URI) {
+        console.error('MongoDB Client: MONGODB_URI is missing in production environment');
+        return null as unknown as MongoClient;
+      }
+      
       // Create and connect client
       client = await createConnectedClient();
       
@@ -122,16 +131,26 @@ if (process.env.NODE_ENV === 'production') {
   console.log('MongoDB Client: Running in development mode');
   
   try {
-    // Create the client instance and wrap its connection in a promise
-    client = new MongoClient(process.env.MONGODB_URI || '', options);
-    
-    clientPromise = client.connect()
-      .catch(error => {
-        console.error('Failed to connect to MongoDB in development:', error);
-        // Try reconnecting once
-        client = new MongoClient(process.env.MONGODB_URI || '', options);
-        return client.connect();
-      });
+    // Check if MONGODB_URI is available
+    if (!process.env.MONGODB_URI) {
+      console.error('MongoDB Client: MONGODB_URI is missing in development environment');
+      clientPromise = Promise.reject(new Error('MONGODB_URI environment variable is not defined'));
+    } else {
+      // Create the client instance and wrap its connection in a promise
+      client = new MongoClient(process.env.MONGODB_URI, options);
+      
+      clientPromise = client.connect()
+        .catch(error => {
+          console.error('Failed to connect to MongoDB in development:', error);
+          // Try reconnecting once
+          if (process.env.MONGODB_URI) {
+            client = new MongoClient(process.env.MONGODB_URI, options);
+            return client.connect();
+          } else {
+            throw new Error('MONGODB_URI environment variable is not defined');
+          }
+        });
+    }
   } catch (error) {
     console.error('Critical MongoDB client initialization error in development:', error);
     clientPromise = Promise.reject(error);
