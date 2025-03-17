@@ -66,6 +66,14 @@ export default function AuthHandlerTestPage() {
     window.location.href = "/api/auth-handler/signin/google";
   };
 
+  const checkSession = () => {
+    window.location.href = "/api/auth-handler/session";
+  };
+
+  const goToSignInPage = () => {
+    window.location.href = "/api/auth-handler/signin";
+  };
+
   return (
     <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
       <h1>Auth Handler Test</h1>
@@ -86,7 +94,7 @@ export default function AuthHandlerTestPage() {
         <h2>Test API Methods</h2>
         <p>This page tests if our custom auth handler can handle both GET and POST methods correctly.</p>
         
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
           <button
             onClick={testGetMethod}
             disabled={loading}
@@ -118,9 +126,16 @@ export default function AuthHandlerTestPage() {
           >
             Test POST Method
           </button>
-          
+        </div>
+      </div>
+      
+      <div style={{ marginBottom: "30px" }}>
+        <h2>Auth Handler Endpoints</h2>
+        <p>These buttons will navigate to different auth handler endpoints.</p>
+        
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
           <button
-            onClick={goToGoogleSignIn}
+            onClick={goToSignInPage}
             style={{
               backgroundColor: "#FBBC05",
               color: "white",
@@ -130,7 +145,35 @@ export default function AuthHandlerTestPage() {
               cursor: "pointer"
             }}
           >
+            Go to Sign In Page
+          </button>
+          
+          <button
+            onClick={goToGoogleSignIn}
+            style={{
+              backgroundColor: "#EA4335",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: "pointer"
+            }}
+          >
             Go to Google Sign In
+          </button>
+          
+          <button
+            onClick={checkSession}
+            style={{
+              backgroundColor: "#673AB7",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: "pointer"
+            }}
+          >
+            Check Session
           </button>
         </div>
       </div>
