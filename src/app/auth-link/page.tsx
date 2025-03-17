@@ -289,6 +289,21 @@ export default function AuthLinkPage() {
               Direct Login Page
             </a>
           </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/auth-handler-test"
+              style={{ 
+                backgroundColor: "#FF9800", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Custom Auth Handler Test
+            </a>
+          </li>
         </ul>
       </div>
       
@@ -398,6 +413,21 @@ export default function AuthLinkPage() {
               }}
             >
               Method Test API
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/auth-handler"
+              style={{ 
+                backgroundColor: "#FF9800", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Custom Auth Handler
             </a>
           </li>
         </ul>
