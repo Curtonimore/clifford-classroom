@@ -7,6 +7,11 @@ export const fetchCache = 'force-no-store';
 
 export async function GET() {
   try {
+    // Log environment variables (partial, for security)
+    console.log("ENV: MONGODB_URI exists:", !!process.env.MONGODB_URI);
+    console.log("ENV: NODE_ENV =", process.env.NODE_ENV);
+    
+    // Try to get the client
     const client = await clientPromise;
     
     if (!client) {
@@ -14,7 +19,13 @@ export async function GET() {
       return NextResponse.json({
         status: "error",
         message: "MongoDB client is null",
-        time: new Date().toISOString()
+        time: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          mongodbUri: process.env.MONGODB_URI ? 
+            `${process.env.MONGODB_URI.substring(0, 15)}...` : 
+            "Not configured"
+        }
       }, { status: 500 });
     }
     
@@ -51,7 +62,13 @@ export async function GET() {
       collections: collections.map(col => col.name),
       userCount,
       sampleUser,
-      environment: process.env.NODE_ENV,
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV || "not set",
+        mongodbUri: process.env.MONGODB_URI ? 
+          `${process.env.MONGODB_URI.substring(0, 15)}...` : 
+          "Not configured"
+      },
       time: new Date().toISOString()
     });
   } catch (error) {
@@ -70,10 +87,13 @@ export async function GET() {
       status: "error",
       connection: "failed",
       error: errorObj,
-      environment: process.env.NODE_ENV,
-      mongoUri: process.env.MONGODB_URI 
-        ? `${process.env.MONGODB_URI.substring(0, 15)}...` 
-        : "Not configured",
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV || "not set",
+        mongodbUri: process.env.MONGODB_URI ? 
+          `${process.env.MONGODB_URI.substring(0, 15)}...` : 
+          "Not configured"
+      },
       time: new Date().toISOString()
     }, { status: 500 });
   }

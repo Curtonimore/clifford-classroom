@@ -47,6 +47,35 @@ export default function AuthLinkPage() {
       </div>
       
       <div style={{ 
+        backgroundColor: "#e3f2fd", 
+        color: "#0d47a1", 
+        padding: "15px", 
+        borderRadius: "4px", 
+        marginBottom: "20px",
+        marginTop: "20px",
+        border: "1px solid #90caf9"
+      }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>🎉 Lesson Plan Generator Now Available For All Users!</h3>
+        <p style={{ margin: "0 0 10px 0" }}>We've made the AI Lesson Plan Generator available to all users, regardless of subscription level. Enjoy creating unlimited lesson plans!</p>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a 
+            href="/lesson-plan"
+            style={{ 
+              backgroundColor: "#1565C0", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Create Lesson Plans
+          </a>
+        </div>
+      </div>
+      
+      <div style={{ 
         backgroundColor: "#e8f5e9", 
         color: "#2e7d32", 
         padding: "15px", 

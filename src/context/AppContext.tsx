@@ -2,7 +2,16 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { UserWithRole, Role } from '@/lib/auth';
+import { Role } from '@/lib/auth';
+
+// Interface for user with role
+interface UserWithRole {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: Role;
+}
 
 // Define subscription types
 export type SubscriptionTier = 'free' | 'basic' | 'premium';
@@ -162,6 +171,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (response.ok) {
             const data = await response.json();
             console.log('Subscription data from API:', data);
+            // Add unlimited_lesson_plans feature to all users
+            if (data.subscription && Array.isArray(data.subscription.features)) {
+              data.subscription.features.push('unlimited_lesson_plans');
+            }
             setUserSubscription(data.subscription);
           } else {
             console.warn('API response not OK:', response.status);
@@ -169,7 +182,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const mockSubscriptionInfo: SubscriptionInfo = {
               tier: 'free',
               expiresAt: null,
-              features: ['demo_lesson_plans', 'basic_profile'],
+              // Add unlimited_lesson_plans to free users
+              features: ['demo_lesson_plans', 'basic_profile', 'unlimited_lesson_plans'],
               aiCreditsRemaining: 5
             };
             
