@@ -12,8 +12,9 @@ export default function AuthLinkPage() {
         marginTop: "20px",
         border: "1px solid #ef9a9a"
       }}>
-        <h3 style={{ margin: "0 0 10px 0" }}>⚠️ MongoDB Client Is Null</h3>
-        <p style={{ margin: "0 0 10px 0" }}>Your application is experiencing a MongoDB connection issue. This is causing authentication failures when using NextAuth with the MongoDB adapter.</p>
+        <h3 style={{ margin: "0 0 10px 0" }}>⚠️ MongoDB Connection Issue in Production</h3>
+        <p style={{ margin: "0 0 10px 0" }}>Your application is experiencing a MongoDB connection issue in the production environment. This is causing authentication failures when using NextAuth with the MongoDB adapter.</p>
+        <p style={{ margin: "0 0 10px 0" }}><strong>Problem:</strong> The MongoDB client is returning null in production mode, despite the URI being configured correctly.</p>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <a 
             href="/mongodb-fix"
@@ -42,6 +43,20 @@ export default function AuthLinkPage() {
             }}
           >
             Try Database-Free Auth
+          </a>
+          <a 
+            href="/api/auth-handler-check"
+            style={{ 
+              backgroundColor: "#6200EA", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Run Connection Diagnostics
           </a>
         </div>
       </div>

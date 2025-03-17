@@ -1,27 +1,34 @@
 'use client';
 
-import { useEffect } from 'react';
-import { redirect } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  // Redirect to the new auth page
-  useEffect(() => {
-    redirect('/auth/signin');
-  }, []);
-
-  // This renders temporarily before the redirect happens
   return (
-    <div className="bg-tan min-h-screen">
-      <div className="py-12 px-8">
-        <div className="max-w-md mx-auto">
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Redirecting to Sign In
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to Clifford Classroom
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Please wait while we redirect you to the new login page.
+            Use your Google account to access all features
           </p>
+        </div>
+        
+        <div className="mt-8 space-y-6">
+          <button
+            onClick={() => signIn('google', { callbackUrl: '/' })}
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Sign in with Google
+          </button>
+          
+          <div className="text-sm text-center">
+            <Link href="/" className="font-medium text-blue-600 hover:text-blue-500">
+              Return to home page
+            </Link>
+          </div>
         </div>
       </div>
     </div>

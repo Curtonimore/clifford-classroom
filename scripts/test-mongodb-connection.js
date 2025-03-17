@@ -1,64 +1,80 @@
 // MongoDB Connection Test Script
 // Run this with: node scripts/test-mongodb-connection.js
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient } = require('mongodb');
 require('dotenv').config({ path: '.env.local' }); // Load environment variables from .env.local
 
-// Check if MONGODB_URI is defined
-if (!process.env.MONGODB_URI) {
-  console.error('MONGODB_URI is not defined in .env.local file');
-  process.exit(1);
-}
-
-// Connection URI from environment variables
-const uri = process.env.MONGODB_URI;
-
-// Create MongoDB client with recommended options
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
 async function testConnection() {
+  console.log("Testing MongoDB connection...");
+  console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
+  
+  if (!process.env.MONGODB_URI) {
+    console.error("MONGODB_URI is not defined in environment variables");
+    process.exit(1);
+  }
+  
+  // Log first 15 chars of URI for debugging (not showing full credentials)
+  console.log("MONGODB_URI starts with:", process.env.MONGODB_URI.substring(0, 15) + "...");
+  
+  const options = {
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 10000
+  };
+  
+  const client = new MongoClient(process.env.MONGODB_URI, options);
+  
   try {
-    // Connect to the MongoDB server
-    console.log('Attempting to connect to MongoDB...');
+    console.log("Attempting to connect to MongoDB...");
     await client.connect();
+    console.log("Successfully connected to MongoDB");
     
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("✅ Successfully connected to MongoDB!");
+    // Basic DB operations
+    const db = client.db();
+    const collections = await db.listCollections().toArray();
+    console.log("Available collections:", collections.map(c => c.name));
     
-    // List all databases
-    console.log('\nListing available databases:');
-    const databasesList = await client.db().admin().listDatabases();
-    databasesList.databases.forEach(db => console.log(` - ${db.name}`));
-
-    return true;
+    // Test users collection
+    try {
+      const usersCollection = db.collection('users');
+      const count = await usersCollection.countDocuments();
+      console.log(`Found ${count} documents in users collection`);
+      
+      if (count > 0) {
+        const sample = await usersCollection.findOne({});
+        console.log("Sample user (sanitized):", {
+          _id: sample._id,
+          // Only log non-sensitive fields
+          name: sample.name || "no name field",
+          email: sample.email ? "email exists" : "no email field",
+          created: sample.createdAt || "no createdAt field"
+        });
+      }
+    } catch (userErr) {
+      console.error("Error accessing users collection:", userErr.message);
+    }
   } catch (error) {
-    console.error('❌ Error connecting to MongoDB:');
-    console.error(error);
-    return false;
+    console.error("MongoDB connection error:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    
+    if (error.name === 'MongoServerSelectionError') {
+      console.error("This usually indicates network connectivity issues, firewall restrictions, or incorrect connection string");
+    }
+    
+    if (error.name === 'MongoParseError') {
+      console.error("This indicates a malformed connection string");
+    }
+    
+    if (error.name === 'MongoNetworkError') {
+      console.error("This indicates network connectivity issues");
+    }
+    
+    process.exit(1);
   } finally {
-    // Close the connection
     await client.close();
-    console.log('\nMongoDB connection closed');
+    console.log("MongoDB connection closed");
   }
 }
 
-// Run the test
-testConnection()
-  .then(success => {
-    if (success) {
-      console.log('\n🎉 Your MongoDB connection is working correctly!');
-      console.log('You can now use your application with MongoDB.');
-    } else {
-      console.log('\n❗ Connection test failed. Please check your connection string and network settings.');
-      console.log('Make sure your IP address is whitelisted in MongoDB Atlas Network Access settings.');
-    }
-  })
-  .catch(console.error)
-  .finally(() => process.exit()); 
+testConnection().catch(console.error); 
