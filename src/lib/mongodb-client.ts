@@ -11,106 +11,113 @@ try {
   console.log('MongoDB Client: Error loading .env.local', error);
 }
 
-// Default test URI - only used during build if no env var exists
-const defaultUri = 'mongodb+srv://testuser:testpassword@testcluster.mongodb.net/test';
+// Ensure MongoDB URI is defined
+if (!process.env.MONGODB_URI) {
+  console.error('MongoDB Client: ERROR - MONGODB_URI is not defined in environment variables');
+  // Do not exit process, as this would break builds
+}
 
-// Use a default URI if MONGODB_URI is not defined
-// This allows builds to complete even without the actual connection string
-const uri = process.env.MONGODB_URI || defaultUri;
+// Use the environment variable or fallback to a default only for build time
+const uri = process.env.MONGODB_URI || 'mongodb+srv://testuser:testpassword@testcluster.mongodb.net/test';
 
 // Debug: log the URI beginning (never log the full URI with credentials)
 console.log(`MongoDB Client: URI exists: ${!!process.env.MONGODB_URI}, starts with: ${process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 15) + '...' : 'Not set'}`);
 
-// If we're in the build process and not actually connecting
-const isBuildProcess = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_GIT_COMMIT_SHA;
+// Check if we're in a build/test process
+const isBuildProcess = process.env.NODE_ENV === 'production' && 
+                       (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview') && 
+                       process.env.VERCEL_GIT_COMMIT_SHA;
 
-// Silent mode for build process
-const logConnectionInfo = !isBuildProcess;
-
-// Optimized connection options for serverless environments
+// Connection options for MongoDB
 const options = {
-  maxPoolSize: 25,              // Increased for better concurrency
-  minPoolSize: 5,               // More minimum connections to reduce cold starts
-  maxIdleTimeMS: 45000,         // Close idle connections after 45 seconds
-  connectTimeoutMS: 10000,      // Time out connection attempts after 10 seconds
-  socketTimeoutMS: 45000,       // Time out operations after 45 seconds
-  waitQueueTimeoutMS: 10000,    // Time out waiting for connection after 10 seconds
-  serverSelectionTimeoutMS: 10000, // Time out server selection after 10 seconds
-  heartbeatFrequencyMS: 30000,  // Check server status more often
+  maxPoolSize: 25,              
+  minPoolSize: 5,               
+  maxIdleTimeMS: 45000,         
+  connectTimeoutMS: 10000,      
+  socketTimeoutMS: 45000,       
+  waitQueueTimeoutMS: 10000,    
+  serverSelectionTimeoutMS: 10000,
   retryWrites: true,
-  // Updated server API settings to be less strict and avoid version mismatch errors
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: false, // Changed from true to false
-    deprecationErrors: false, // Changed from true to false
+    strict: false,
+    deprecationErrors: false,
   }
 };
 
+// Global MongoDB Client variable
+let clientPromise: Promise<MongoClient>;
+
 // Create a new MongoClient with error handling
 const createClient = () => {
-  if (logConnectionInfo) {
-    console.log('Creating new MongoDB client connection');
-  }
+  console.log('Creating new MongoDB client connection');
   
   try {
-    // Double-check that we have a URI before creating client
+    // Ensure we have a valid URI before creating client
     if (!process.env.MONGODB_URI) {
-      console.error('Error: MONGODB_URI is not set in environment variables. This will likely cause authentication failures.');
+      throw new Error('MONGODB_URI is not set in environment variables');
     }
     
     const client = new MongoClient(uri, options);
     return client;
   } catch (error) {
-    if (logConnectionInfo) {
-      console.error('Error creating MongoDB client:', error);
-    }
+    console.error('Error creating MongoDB client:', error);
     throw error;
   }
 };
 
-let client;
-let clientPromise: Promise<MongoClient>;
-
-// Special handling for Vercel build process
+// Special handling for build process
 if (isBuildProcess) {
-  // During build, create a mock client that doesn't actually connect
+  // During build, do not attempt to connect
   console.log('Build process detected, using mock MongoDB client');
-  client = null;
   clientPromise = Promise.resolve(null as unknown as MongoClient);
 } else {
-  // For both development and production, create a real client
-  client = createClient();
-  
-  // Add error handling to the connection promise
-  clientPromise = client.connect()
-    .catch((error) => {
-      console.error('Failed to connect to MongoDB:', error);
-      // Attempt to reconnect once
-      console.log('Attempting to reconnect to MongoDB...');
-      client = createClient();
-      return client.connect();
-    })
-    .catch((error) => {
-      console.error('MongoDB reconnection failed:', error);
-      throw error;
+  try {
+    // Create a MongoDB client instance
+    const client = createClient();
+    
+    // Attach event listeners for better monitoring
+    client.on('connectionPoolCreated', () => {
+      console.log('MongoDB connection pool created');
     });
+    
+    client.on('connectionPoolClosed', () => {
+      console.log('MongoDB connection pool closed');
+    });
+    
+    client.on('serverHeartbeatFailed', (event) => {
+      console.error('MongoDB server heartbeat failed:', event);
+    });
+    
+    // Create a promise that connects and handles errors
+    clientPromise = client.connect()
+      .catch((error) => {
+        console.error('Failed to connect to MongoDB:', error);
+        // Attempt to reconnect once
+        console.log('Attempting to reconnect to MongoDB...');
+        const newClient = createClient();
+        return newClient.connect();
+      })
+      .catch((error) => {
+        console.error('MongoDB reconnection failed:', error);
+        throw error;
+      });
+    
+    // Verify the connection works by immediately awaiting it (wrapped in a self-executing async function)
+    (async () => {
+      try {
+        const connectedClient = await clientPromise;
+        console.log('MongoDB initial connection verified successfully');
+      } catch (error) {
+        console.error('MongoDB initial connection verification failed:', error);
+      }
+    })();
+  } catch (error) {
+    console.error('Critical MongoDB client initialization error:', error);
+    // Create a rejected promise to ensure errors are properly propagated
+    clientPromise = Promise.reject(error);
+  }
 }
 
-// Add event listeners for connection issues (only in production)
-if (client && !isBuildProcess) {
-  client.on('connectionPoolCreated', (event) => {
-    console.log('MongoDB connection pool created');
-  });
-  
-  client.on('connectionPoolClosed', (event) => {
-    console.log('MongoDB connection pool closed');
-  });
-
-  client.on('serverHeartbeatFailed', (event) => {
-    console.error('MongoDB server heartbeat failed:', event);
-  });
-}
-
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
+// Export the client promise
 export default clientPromise; 

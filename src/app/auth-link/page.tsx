@@ -4,6 +4,49 @@ export default function AuthLinkPage() {
       <h1>NextAuth Direct Links</h1>
       
       <div style={{ 
+        backgroundColor: "#ffebee", 
+        color: "#c62828", 
+        padding: "15px", 
+        borderRadius: "4px", 
+        marginBottom: "20px",
+        marginTop: "20px",
+        border: "1px solid #ef9a9a"
+      }}>
+        <h3 style={{ margin: "0 0 10px 0" }}>⚠️ MongoDB Client Is Null</h3>
+        <p style={{ margin: "0 0 10px 0" }}>Your application is experiencing a MongoDB connection issue. This is causing authentication failures when using NextAuth with the MongoDB adapter.</p>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a 
+            href="/mongodb-fix"
+            style={{ 
+              backgroundColor: "#C62828", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            View MongoDB Fix
+          </a>
+          <a 
+            href="/auth-direct-test"
+            style={{ 
+              backgroundColor: "#3949AB", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Try Database-Free Auth
+          </a>
+        </div>
+      </div>
+      
+      <div style={{ 
         backgroundColor: "#e8f5e9", 
         color: "#2e7d32", 
         padding: "15px", 
@@ -401,6 +444,22 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>API Endpoints</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/auth-handler-check"
+              style={{ 
+                backgroundColor: "#6200EA", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block",
+                fontWeight: "bold"
+              }}
+            >
+              Auth Handler & MongoDB Check (NEW)
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/api/auth-status"
