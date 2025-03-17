@@ -41,20 +41,36 @@ export default function AuthLinkPage() {
       }}>
         <h3 style={{ margin: "0 0 10px 0" }}>⚠️ HTTP 405 Error Detected</h3>
         <p style={{ margin: "0 0 10px 0" }}>You're experiencing HTTP 405 (Method Not Allowed) errors, which suggests an issue with how your server is handling API requests.</p>
-        <a 
-          href="/nextauth-test"
-          style={{ 
-            backgroundColor: "#2196F3", 
-            color: "white", 
-            padding: "10px 15px", 
-            borderRadius: "4px", 
-            textDecoration: "none",
-            display: "inline-block",
-            fontWeight: "bold"
-          }}
-        >
-          Test API Methods
-        </a>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a 
+            href="/nextauth-test"
+            style={{ 
+              backgroundColor: "#2196F3", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Test API Methods
+          </a>
+          <a 
+            href="/auth-test-simple"
+            style={{ 
+              backgroundColor: "#1976D2", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Simple Endpoint Test
+          </a>
+        </div>
       </div>
       
       <div style={{ 

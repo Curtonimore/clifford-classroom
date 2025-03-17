@@ -3,10 +3,9 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 /**
- * Middleware for request processing
- * - Handles authentication checking
- * - Adds security headers
- * - Ensures proper redirects for auth-protected routes
+ * Simplified middleware for request processing
+ * - Completely bypasses all auth-related routes
+ * - Only handles authentication for specific protected routes
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -14,10 +13,13 @@ export async function middleware(request: NextRequest) {
   // Log the request path for debugging
   console.log('Middleware processing path:', pathname);
   
-  // IMPORTANT: Skip middleware for NextAuth API routes
-  // This is critical for NextAuth to work properly
-  if (pathname.startsWith('/api/auth')) {
-    console.log('Skipping middleware for NextAuth route:', pathname);
+  // CRITICAL: Skip middleware for ALL auth-related routes
+  if (
+    pathname.includes('/api/auth') || 
+    pathname.includes('/auth-') ||
+    pathname.includes('/api/direct-google-auth')
+  ) {
+    console.log('Skipping middleware for auth route:', pathname);
     return NextResponse.next();
   }
   
@@ -33,14 +35,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
+  // Add security headers to all responses
   const response = NextResponse.next();
-
-  // Add security headers
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   
-  // Handle auth-protected routes
+  // Only check auth for these specific protected routes
   if (
     pathname.startsWith('/profile') ||
     pathname.startsWith('/admin') ||
@@ -68,16 +69,18 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Configure which routes this middleware should run on
+ * - Explicitly exclude all auth-related routes
  */
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
      * - api/auth (NextAuth.js API routes)
+     * - api/direct-google-auth (Our direct OAuth implementation)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/auth|api/direct-google-auth|_next/static|_next/image|favicon.ico).*)',
   ],
 }; 
