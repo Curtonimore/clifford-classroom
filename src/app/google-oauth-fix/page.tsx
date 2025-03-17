@@ -5,26 +5,37 @@ import { useState, useEffect } from "react";
 export default function GoogleOAuthFixPage() {
   const [hostName, setHostName] = useState<string>("");
   const [showCopied, setShowCopied] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   
   useEffect(() => {
-    // Get the current hostname
-    if (typeof window !== 'undefined') {
+    // Get the current hostname only when running in the browser, not during build
+    if (typeof window !== 'undefined' && !isLoaded) {
       setHostName(window.location.origin);
+      setIsLoaded(true);
     }
-  }, []);
+  }, [isLoaded]);
   
-  const redirectUris = [
-    `${hostName}/api/auth/callback/google`,
-    `${hostName}/auth/callback/google`,
-    `${hostName}/api/auth/callback`,
-    hostName
-  ];
+  // Generate redirect URIs only when hostname is available
+  const getRedirectUris = () => {
+    if (!hostName) return [];
+    
+    return [
+      `${hostName}/api/auth/callback/google`,
+      `${hostName}/auth/callback/google`,
+      `${hostName}/api/auth/callback`,
+      hostName
+    ];
+  };
+  
+  const redirectUris = getRedirectUris();
   
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setShowCopied(true);
-      setTimeout(() => setShowCopied(false), 2000);
-    });
+    if (typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(text).then(() => {
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 2000);
+      });
+    }
   };
   
   return (
@@ -65,7 +76,7 @@ export default function GoogleOAuthFixPage() {
             borderRadius: "3px", 
             margin: "0 5px" 
           }}>
-            {hostName}/api/auth/callback/google
+            {hostName ? `${hostName}/api/auth/callback/google` : "Loading..."}
           </code> 
           did not match a registered redirect URI.
         </p>
@@ -115,52 +126,56 @@ export default function GoogleOAuthFixPage() {
           borderRadius: "4px",
           marginTop: "10px"
         }}>
-          {redirectUris.map((uri, index) => (
-            <div key={index} style={{ 
-              display: "flex", 
-              alignItems: "center",
-              marginBottom: "10px",
-              backgroundColor: index === 0 ? "#e3f2fd" : "transparent",
-              padding: "10px",
-              borderRadius: "4px"
-            }}>
-              <code style={{ 
-                flexGrow: 1, 
-                padding: "8px", 
-                backgroundColor: "#eee", 
-                borderRadius: "4px",
-                overflowX: "auto"
+          {hostName ? (
+            redirectUris.map((uri, index) => (
+              <div key={index} style={{ 
+                display: "flex", 
+                alignItems: "center",
+                marginBottom: "10px",
+                backgroundColor: index === 0 ? "#e3f2fd" : "transparent",
+                padding: "10px",
+                borderRadius: "4px"
               }}>
-                {uri}
-              </code>
-              <button 
-                onClick={() => copyToClipboard(uri)}
-                style={{ 
-                  marginLeft: "10px", 
-                  backgroundColor: "#2196F3", 
-                  color: "white", 
-                  border: "none", 
-                  padding: "8px 15px", 
+                <code style={{ 
+                  flexGrow: 1, 
+                  padding: "8px", 
+                  backgroundColor: "#eee", 
                   borderRadius: "4px",
-                  cursor: "pointer"
-                }}
-              >
-                Copy
-              </button>
-              {index === 0 && (
-                <span style={{ 
-                  marginLeft: "10px", 
-                  backgroundColor: "#4CAF50", 
-                  color: "white", 
-                  padding: "4px 8px", 
-                  borderRadius: "4px",
-                  fontSize: "12px"
+                  overflowX: "auto"
                 }}>
-                  Primary
-                </span>
-              )}
-            </div>
-          ))}
+                  {uri}
+                </code>
+                <button 
+                  onClick={() => copyToClipboard(uri)}
+                  style={{ 
+                    marginLeft: "10px", 
+                    backgroundColor: "#2196F3", 
+                    color: "white", 
+                    border: "none", 
+                    padding: "8px 15px", 
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Copy
+                </button>
+                {index === 0 && (
+                  <span style={{ 
+                    marginLeft: "10px", 
+                    backgroundColor: "#4CAF50", 
+                    color: "white", 
+                    padding: "4px 8px", 
+                    borderRadius: "4px",
+                    fontSize: "12px"
+                  }}>
+                    Primary
+                  </span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: "20px", textAlign: "center" }}>Loading redirect URIs...</div>
+          )}
         </div>
         
         <div style={{ 
@@ -197,7 +212,7 @@ export default function GoogleOAuthFixPage() {
             backgroundColor: "#eee", 
             borderRadius: "4px" 
           }}>
-            {hostName}
+            {hostName || "Loading..."}
           </code>
           <button 
             onClick={() => copyToClipboard(hostName)}

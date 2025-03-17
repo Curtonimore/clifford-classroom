@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function GoogleAuthTestPage() {
   const [clientId, setClientId] = useState<string>("");
   const [showClientId, setShowClientId] = useState<boolean>(false);
-  const [redirectUri, setRedirectUri] = useState<string>("https://www.cliffordclassroom.com/api/auth/callback/google");
+  const [redirectUri, setRedirectUri] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
+  // Initialize the component safely
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isLoaded) {
+      setRedirectUri(`${window.location.origin}/api/auth/callback/google`);
+      setIsLoaded(true);
+    }
+  }, [isLoaded]);
 
   // Generate Google OAuth URL
   const generateOAuthUrl = () => {
     try {
       if (!clientId) {
-        setErrorMessage("Please enter a Google Client ID");
         return null;
       }
 
@@ -33,7 +41,7 @@ export default function GoogleAuthTestPage() {
       const qs = new URLSearchParams(options);
       return `${rootUrl}?${qs.toString()}`;
     } catch (error) {
-      setErrorMessage(`Error generating URL: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error generating URL:", error);
       return null;
     }
   };
@@ -41,13 +49,13 @@ export default function GoogleAuthTestPage() {
   // Fetch client ID
   const fetchClientId = async () => {
     try {
+      setErrorMessage(null);
       const response = await fetch('/api/get-client-id');
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
       setClientId(data.clientId || "");
-      setErrorMessage(null);
     } catch (error) {
       setErrorMessage(`Error fetching client ID: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -55,6 +63,11 @@ export default function GoogleAuthTestPage() {
 
   // Handle the OAuth flow
   const startOAuthFlow = () => {
+    if (!clientId) {
+      setErrorMessage("Please enter a Google Client ID");
+      return;
+    }
+    
     const url = generateOAuthUrl();
     if (url) {
       window.location.href = url;
@@ -204,7 +217,7 @@ export default function GoogleAuthTestPage() {
           overflow: "auto",
           wordBreak: "break-all"
         }}>
-          {generateOAuthUrl() || "Enter Client ID to generate URL"}
+          {clientId ? (generateOAuthUrl() || "Error generating URL") : "Enter Client ID to generate URL"}
         </div>
         <p><strong>Note:</strong> This is the exact URL that will be used to start the OAuth flow.</p>
       </div>
