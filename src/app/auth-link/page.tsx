@@ -68,7 +68,7 @@ export default function AuthLinkPage() {
       }}>
         <h3 style={{ margin: "0 0 10px 0" }}>🛠️ Middleware Fix Applied</h3>
         <p style={{ margin: "0 0 10px 0" }}>We've updated the middleware to explicitly skip NextAuth API routes. This should fix the HTTP 405 errors.</p>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <a 
             href="/simple-auth"
             style={{ 
@@ -96,6 +96,20 @@ export default function AuthLinkPage() {
             }}
           >
             Check Auth Simple Endpoint
+          </a>
+          <a 
+            href="/direct-google"
+            style={{ 
+              backgroundColor: "#C62828", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Try Direct Google OAuth
           </a>
         </div>
       </div>
