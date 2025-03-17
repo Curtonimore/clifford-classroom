@@ -1,88 +1,77 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authOptions } from '@/lib/auth';
+
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // Check environment variables (without revealing secrets)
-    const authConfig = {
-      nextauth: {
-        url: {
-          exists: !!process.env.NEXTAUTH_URL,
-          value: process.env.NEXTAUTH_URL || '',
-          isHttps: process.env.NEXTAUTH_URL?.startsWith('https://') || false,
-        },
-        secret: {
-          exists: !!process.env.NEXTAUTH_SECRET,
-          length: process.env.NEXTAUTH_SECRET?.length || 0,
-        },
-      },
-      google: {
-        clientId: {
-          exists: !!process.env.GOOGLE_CLIENT_ID,
-          format: process.env.GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') || false,
-          length: process.env.GOOGLE_CLIENT_ID?.length || 0,
-        },
-        clientSecret: {
-          exists: !!process.env.GOOGLE_CLIENT_SECRET,
-          length: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
-        },
-      },
-      admin: {
-        emails: (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()),
-      },
+    // Get the request URL and headers
+    const url = new URL(req.url);
+    const headers = Object.fromEntries([...req.headers.entries()]);
+    
+    // Get environment variables (sanitized)
+    const env = {
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || null,
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '[REDACTED]' : null,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? '[REDACTED]' : null,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '[REDACTED]' : null,
+      NODE_ENV: process.env.NODE_ENV || null,
     };
     
-    // Check for common issues
-    const issues: string[] = [];
+    // Get the auth configuration (sanitized)
+    const authConfig = {
+      providers: authOptions.providers.map(provider => ({
+        id: provider.id,
+        name: provider.name,
+        type: provider.type,
+      })),
+      debug: authOptions.debug,
+      pages: authOptions.pages,
+      session: authOptions.session,
+      // Don't include callbacks or secret
+    };
     
-    if (!authConfig.nextauth.url.exists) {
-      issues.push('NEXTAUTH_URL is missing');
-    } else if (process.env.NODE_ENV === 'production' && !authConfig.nextauth.url.isHttps) {
-      issues.push('NEXTAUTH_URL should use HTTPS in production');
-    }
+    // Calculate redirect URIs
+    const redirectUris = {
+      baseUrl: process.env.NEXTAUTH_URL,
+      callbackUrl: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
+      signInUrl: `${process.env.NEXTAUTH_URL}/api/auth/signin/google`,
+      host: url.host,
+      origin: url.origin,
+      hostname: url.hostname,
+    };
     
-    if (!authConfig.nextauth.secret.exists) {
-      issues.push('NEXTAUTH_SECRET is missing');
-    }
-    
-    if (!authConfig.google.clientId.exists || !authConfig.google.clientSecret.exists) {
-      issues.push('Google OAuth credentials are missing');
-    }
-    
-    if (authConfig.google.clientId.exists && !authConfig.google.clientId.format) {
-      issues.push('Google Client ID format appears incorrect (should end with .apps.googleusercontent.com)');
-    }
-    
-    // Return the diagnostic information
-    return new Response(JSON.stringify({
-      timestamp: new Date().toISOString(),
+    // Return the configuration
+    return NextResponse.json({
+      env,
       authConfig,
-      issues,
-      nodeEnv: process.env.NODE_ENV,
-      vercelUrl: process.env.VERCEL_URL || null,
-      message: "Auth configuration check completed"
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, max-age=0',
-        'X-Content-Type-Options': 'nosniff'
+      redirectUris,
+      request: {
+        url: url.toString(),
+        path: url.pathname,
+        host: url.host,
+        origin: url.origin,
+        headers: {
+          host: headers.host,
+          'user-agent': headers['user-agent'],
+          referer: headers.referer,
+          'x-forwarded-host': headers['x-forwarded-host'],
+          'x-forwarded-proto': headers['x-forwarded-proto'],
+        },
       },
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Auth config check error:', error);
-    
-    return new Response(JSON.stringify({
-      error: 'Failed to check auth configuration',
-      message: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, max-age=0',
+    console.error('Error in auth-config-check route:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error',
+        message: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
       },
-    });
+      { status: 500 }
+    );
   }
 } 

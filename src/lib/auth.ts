@@ -64,7 +64,33 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   
   // Enable debug mode in development
-  debug: process.env.NODE_ENV === "development",
+  debug: true, // Always enable debug mode to help diagnose issues
+  
+  // Set the URLs for NextAuth
+  pages: {
+    signIn: "/auth-link",
+    signOut: "/auth-link",
+    error: "/auth-link", // Redirect to our auth-link page on error
+  },
+  
+  // Add event handlers for debugging
+  events: {
+    async signIn(message) {
+      console.log("Sign in event:", message);
+    },
+    async signOut(message) {
+      console.log("Sign out event:", message);
+    },
+    async createUser(message) {
+      console.log("Create user event:", message);
+    },
+    async linkAccount(message) {
+      console.log("Link account event:", message);
+    },
+    async session(message) {
+      console.log("Session event:", message);
+    },
+  },
 };
 
 // Type definitions for TypeScript

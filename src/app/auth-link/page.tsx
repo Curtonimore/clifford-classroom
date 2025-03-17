@@ -14,20 +14,36 @@ export default function AuthLinkPage() {
       }}>
         <h3 style={{ margin: "0 0 10px 0" }}>🔍 Configuration Issue Detected</h3>
         <p style={{ margin: "0 0 10px 0" }}>We've identified a potential issue with your Google OAuth configuration. The redirect URI mismatch is likely causing authentication failures.</p>
-        <a 
-          href="/google-oauth-fix"
-          style={{ 
-            backgroundColor: "#4CAF50", 
-            color: "white", 
-            padding: "10px 15px", 
-            borderRadius: "4px", 
-            textDecoration: "none",
-            display: "inline-block",
-            fontWeight: "bold"
-          }}
-        >
-          View Fix Instructions
-        </a>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <a 
+            href="/google-oauth-fix"
+            style={{ 
+              backgroundColor: "#4CAF50", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            View Fix Instructions
+          </a>
+          <a 
+            href="/auth-config-test"
+            style={{ 
+              backgroundColor: "#388E3C", 
+              color: "white", 
+              padding: "10px 15px", 
+              borderRadius: "4px", 
+              textDecoration: "none",
+              display: "inline-block",
+              fontWeight: "bold"
+            }}
+          >
+            Test Auth Configuration
+          </a>
+        </div>
       </div>
       
       <div style={{ 

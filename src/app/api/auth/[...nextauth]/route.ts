@@ -1,14 +1,11 @@
 import NextAuth from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// Force server-side rendering for this route to prevent caching issues
+// Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
-// This is crucial for Vercel deployments as it ensures the route is not statically optimized
-export const fetchCache = 'force-no-store';
-
-// Simple API route that uses the auth options
+// Export the NextAuth handler for both GET and POST methods
 const handler = NextAuth(authOptions);
 
-// Export the handler for GET and POST methods
-export { handler as GET, handler as POST }; 
+export const GET = handler;
+export const POST = handler; 
