@@ -1,4 +1,15 @@
 import { MongoClient, ServerApiVersion } from 'mongodb';
+import path from 'path';
+import * as dotenv from 'dotenv';
+
+// Try to load environment variables from .env.local explicitly
+try {
+  const envPath = path.resolve(process.cwd(), '.env.local');
+  dotenv.config({ path: envPath });
+  console.log('MongoDB Client: Loaded config from .env.local');
+} catch (error) {
+  console.log('MongoDB Client: Error loading .env.local', error);
+}
 
 // Default test URI - only used during build if no env var exists
 const defaultUri = 'mongodb+srv://testuser:testpassword@testcluster.mongodb.net/test';
@@ -6,6 +17,9 @@ const defaultUri = 'mongodb+srv://testuser:testpassword@testcluster.mongodb.net/
 // Use a default URI if MONGODB_URI is not defined
 // This allows builds to complete even without the actual connection string
 const uri = process.env.MONGODB_URI || defaultUri;
+
+// Debug: log the URI beginning (never log the full URI with credentials)
+console.log(`MongoDB Client: URI exists: ${!!process.env.MONGODB_URI}, starts with: ${process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 15) + '...' : 'Not set'}`);
 
 // If we're in the build process and not actually connecting
 const isBuildProcess = process.env.VERCEL_ENV === 'production' && process.env.VERCEL_GIT_COMMIT_SHA;
@@ -24,10 +38,11 @@ const options = {
   serverSelectionTimeoutMS: 10000, // Time out server selection after 10 seconds
   heartbeatFrequencyMS: 30000,  // Check server status more often
   retryWrites: true,
+  // Updated server API settings to be less strict and avoid version mismatch errors
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+    strict: false, // Changed from true to false
+    deprecationErrors: false, // Changed from true to false
   }
 };
 
@@ -38,6 +53,11 @@ const createClient = () => {
   }
   
   try {
+    // Double-check that we have a URI before creating client
+    if (!process.env.MONGODB_URI) {
+      console.error('Error: MONGODB_URI is not set in environment variables. This will likely cause authentication failures.');
+    }
+    
     const client = new MongoClient(uri, options);
     return client;
   } catch (error) {
@@ -57,30 +77,14 @@ if (isBuildProcess) {
   console.log('Build process detected, using mock MongoDB client');
   client = null;
   clientPromise = Promise.resolve(null as unknown as MongoClient);
-} else if (process.env.NODE_ENV === 'development') {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    client = createClient();
-    globalWithMongo._mongoClientPromise = client.connect()
-      .catch((error) => {
-        console.error('Failed to connect to MongoDB in development:', error);
-        throw error;
-      });
-  }
-  clientPromise = globalWithMongo._mongoClientPromise as Promise<MongoClient>;
 } else {
-  // In production mode, it's best to not use a global variable.
+  // For both development and production, create a real client
   client = createClient();
   
   // Add error handling to the connection promise
   clientPromise = client.connect()
     .catch((error) => {
-      console.error('Failed to connect to MongoDB in production:', error);
+      console.error('Failed to connect to MongoDB:', error);
       // Attempt to reconnect once
       console.log('Attempting to reconnect to MongoDB...');
       client = createClient();
@@ -93,7 +97,7 @@ if (isBuildProcess) {
 }
 
 // Add event listeners for connection issues (only in production)
-if (process.env.NODE_ENV === 'production' && client && !isBuildProcess) {
+if (client && !isBuildProcess) {
   client.on('connectionPoolCreated', (event) => {
     console.log('MongoDB connection pool created');
   });
