@@ -365,6 +365,21 @@ export default function AuthLinkPage() {
               NextAuth Client Debug
             </a>
           </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/google-auth-test"
+              style={{ 
+                backgroundColor: "#4285F4", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Direct Google OAuth Test (New)
+            </a>
+          </li>
         </ul>
       </div>
       
