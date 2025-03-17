@@ -70,7 +70,7 @@ export default function AuthLinkPage() {
         <p style={{ margin: "0 0 10px 0" }}>We've updated the middleware to explicitly skip NextAuth API routes. This should fix the HTTP 405 errors.</p>
         <div style={{ display: "flex", gap: "10px" }}>
           <a 
-            href="/api/auth-direct-test/signin"
+            href="/simple-auth"
             style={{ 
               backgroundColor: "#F44336", 
               color: "white", 
@@ -81,10 +81,10 @@ export default function AuthLinkPage() {
               fontWeight: "bold"
             }}
           >
-            Try Direct NextAuth Sign In
+            Try Simple Auth Page
           </a>
           <a 
-            href="/api/auth-direct-test/signin/google"
+            href="/api/auth-simple"
             style={{ 
               backgroundColor: "#D32F2F", 
               color: "white", 
@@ -95,7 +95,7 @@ export default function AuthLinkPage() {
               fontWeight: "bold"
             }}
           >
-            Try Direct Google Sign In
+            Check Auth Simple Endpoint
           </a>
         </div>
       </div>
@@ -169,6 +169,21 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>Debug Pages</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/simple-auth"
+              style={{ 
+                backgroundColor: "#4CAF50", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Simple Auth Test
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/nextauth-test"
@@ -280,6 +295,21 @@ export default function AuthLinkPage() {
       <div style={{ marginTop: "30px" }}>
         <h2>API Endpoints</h2>
         <ul style={{ listStyleType: "none", padding: 0 }}>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/api/auth-simple"
+              style={{ 
+                backgroundColor: "#FF5722", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              Auth Simple Endpoint
+            </a>
+          </li>
           <li style={{ marginBottom: "10px" }}>
             <a 
               href="/api/auth-direct-test/session"
