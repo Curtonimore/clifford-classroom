@@ -327,6 +327,21 @@ export default function AuthLinkPage() {
         <ul style={{ listStyleType: "none", padding: 0 }}>
           <li style={{ marginBottom: "10px" }}>
             <a 
+              href="/api/auth-status"
+              style={{ 
+                backgroundColor: "#4CAF50", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              NextAuth Status Check
+            </a>
+          </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
               href="/api/auth-simple"
               style={{ 
                 backgroundColor: "#FF5722", 

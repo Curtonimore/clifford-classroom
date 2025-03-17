@@ -11,11 +11,20 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for static assets and API routes
+  // Log the request path for debugging
+  console.log('Middleware processing path:', pathname);
+  
+  // IMPORTANT: Skip middleware for NextAuth API routes
+  // This is critical for NextAuth to work properly
+  if (pathname.startsWith('/api/auth')) {
+    console.log('Skipping middleware for NextAuth route:', pathname);
+    return NextResponse.next();
+  }
+  
+  // Skip middleware for static assets and other API routes
   if (
     pathname.startsWith('/_next') || 
     pathname.includes('/api/') ||
-    pathname.startsWith('/api/auth/') ||  // Explicitly skip NextAuth routes
     pathname.endsWith('.svg') ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.jpg') ||
@@ -43,7 +52,7 @@ export async function middleware(request: NextRequest) {
     
     // If no token exists, redirect to the login page
     if (!token) {
-      const url = new URL('/auth/signin', request.url);
+      const url = new URL('/auth-link', request.url);
       url.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(url);
     }
@@ -63,10 +72,11 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - Already excluded in the middleware function
-     * - Pre-defined Next.js paths like _next/static, _next/image, favicon.ico
-     * - NextAuth API routes
+     * Match all request paths except for the ones starting with:
+     * - api/auth (NextAuth.js API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
      */
     '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
   ],
