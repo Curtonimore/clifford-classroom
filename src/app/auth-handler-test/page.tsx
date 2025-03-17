@@ -62,16 +62,45 @@ export default function AuthHandlerTestPage() {
     }
   };
 
+  // Direct navigation to NextAuth endpoints
   const goToGoogleSignIn = () => {
-    window.location.href = "/api/auth-handler/signin/google";
+    window.location.href = "/api/auth/signin/google";
   };
 
   const checkSession = () => {
-    window.location.href = "/api/auth-handler/session";
+    window.location.href = "/api/auth/session";
   };
 
   const goToSignInPage = () => {
-    window.location.href = "/api/auth-handler/signin";
+    window.location.href = "/api/auth/signin";
+  };
+
+  // Function to test NextAuth endpoints directly
+  const testNextAuthEndpoint = async (endpoint: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log(`Testing NextAuth endpoint: ${endpoint}`);
+      const response = await fetch(endpoint);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json().catch(() => "Not JSON");
+      setGetResponse({
+        message: `NextAuth endpoint response: ${endpoint}`,
+        data: data
+      });
+      console.log("NextAuth response:", data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`NextAuth Error: ${errorMessage}`);
+      console.error("NextAuth Error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -130,8 +159,8 @@ export default function AuthHandlerTestPage() {
       </div>
       
       <div style={{ marginBottom: "30px" }}>
-        <h2>Auth Handler Endpoints</h2>
-        <p>These buttons will navigate to different auth handler endpoints.</p>
+        <h2>NextAuth Direct Endpoints</h2>
+        <p>These buttons will navigate directly to NextAuth endpoints.</p>
         
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
           <button
@@ -174,6 +203,61 @@ export default function AuthHandlerTestPage() {
             }}
           >
             Check Session
+          </button>
+        </div>
+      </div>
+      
+      <div style={{ marginBottom: "30px" }}>
+        <h2>Test NextAuth Endpoints</h2>
+        <p>These buttons will fetch data from NextAuth endpoints without redirecting.</p>
+        
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+          <button
+            onClick={() => testNextAuthEndpoint('/api/auth/session')}
+            disabled={loading}
+            style={{
+              backgroundColor: "#009688",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            Test Session Endpoint
+          </button>
+          
+          <button
+            onClick={() => testNextAuthEndpoint('/api/auth/csrf')}
+            disabled={loading}
+            style={{
+              backgroundColor: "#FF5722",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            Test CSRF Endpoint
+          </button>
+          
+          <button
+            onClick={() => testNextAuthEndpoint('/api/auth/providers')}
+            disabled={loading}
+            style={{
+              backgroundColor: "#9C27B0",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            Test Providers Endpoint
           </button>
         </div>
       </div>

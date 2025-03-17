@@ -304,6 +304,21 @@ export default function AuthLinkPage() {
               Custom Auth Handler Test
             </a>
           </li>
+          <li style={{ marginBottom: "10px" }}>
+            <a 
+              href="/nextauth-debug"
+              style={{ 
+                backgroundColor: "#2196F3", 
+                color: "white", 
+                padding: "10px 15px", 
+                borderRadius: "4px", 
+                textDecoration: "none",
+                display: "inline-block"
+              }}
+            >
+              NextAuth Client Debug
+            </a>
+          </li>
         </ul>
       </div>
       
