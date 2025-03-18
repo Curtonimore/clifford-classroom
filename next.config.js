@@ -24,10 +24,10 @@ const nextConfig = {
     optimizeCss: false,
     // Enable scroll restoration for better user experience
     scrollRestoration: true,
-    // Simplify build process
-    esmExternals: 'loose',
-    // Fix for turbotrace issues - disabling
-    turbotrace: false,
+    // Removed esmExternals option as it's not recommended in Next.js 15+
+    
+    // Removed turbotrace option as it's not recognized in Next.js 15+
+    
     // Improve stability of app router
     serverActions: {
       bodySizeLimit: '2mb',
@@ -55,7 +55,8 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  swcMinify: true,
+  // Removed swcMinify option as it's the default in Next.js 15+ and no longer needed
+  
   // Optimize webpack configuration for stability
   webpack: (config, { dev, isServer }) => {
     // Fix "self is not defined" error
