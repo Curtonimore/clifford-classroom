@@ -6,6 +6,7 @@ import NavBar from '@/components/NavBar';
 import SessionProvider from '@/providers/SessionProvider';
 import './globals.css';
 import './lists.css';
+import ViewportDebug from '@/components/ViewportDebug';
 
 const averageFont = Average({
   weight: '400',
@@ -50,33 +51,8 @@ export default function RootLayout({
           </AppProvider>
         </SessionProvider>
         <Analytics />
-        {/* Debug viewport element */}
-        <div id="viewport-debug" style={{
-          position: 'fixed',
-          bottom: '5px',
-          left: '5px',
-          fontSize: '10px',
-          color: '#999',
-          background: 'rgba(255,255,255,0.7)',
-          padding: '2px 5px',
-          zIndex: 9999,
-          display: 'none',
-        }}>
-        </div>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            // Only display in development
-            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-              const debugElement = document.getElementById('viewport-debug');
-              debugElement.style.display = 'block';
-              function updateViewportSize() {
-                debugElement.innerText = 'viewport: ' + window.innerWidth + 'x' + window.innerHeight;
-              }
-              window.addEventListener('resize', updateViewportSize);
-              updateViewportSize();
-            }
-          `
-        }} />
+        {/* Client-side viewport debug component */}
+        <ViewportDebug />
       </body>
     </html>
   );
