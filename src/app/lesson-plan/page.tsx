@@ -510,24 +510,24 @@ export default function LessonPlanPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold mb-6">AI Lesson Plan Generator</h1>
       
       {/* Demo Mode Toggle */}
-      <div className="bg-blue-50 p-4 mb-6">
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
         <div className="flex items-center">
           <input
             type="checkbox"
             id="demoModeToggle"
             checked={isDemoMode}
             onChange={handleDemoModeToggle}
-            className="mr-2"
+            className="mr-2 h-5 w-5"
           />
-          <label htmlFor="demoModeToggle">
+          <label htmlFor="demoModeToggle" className="text-blue-800 font-medium">
             Use Demo Mode (pre-defined templates)
           </label>
         </div>
-        <p className="text-sm mt-2">
+        <p className="text-blue-600 text-sm mt-2">
           {isDemoMode 
             ? "Demo mode is enabled. Your lesson plan will use pre-defined templates instead of AI generation."
             : "Demo mode is disabled. Your lesson plan will be uniquely generated using our AI system."}
@@ -535,12 +535,12 @@ export default function LessonPlanPage() {
       </div>
       
       {isFormVisible ? (
-        <form onSubmit={handleSubmit} className="bg-white p-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
           <div className="mb-4">
-            <label htmlFor="audience" className="block mb-1">Grade Level<span style={{ color: 'red' }}>*</span></label>
+            <label htmlFor="audience" className="block mb-2 font-medium">Grade Level<span className="text-red-500">*</span></label>
             <select 
               id="audience" 
-              className="w-full p-2 border"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={formData.audience}
               onChange={handleChange}
               required
@@ -553,10 +553,10 @@ export default function LessonPlanPage() {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="subject" className="block mb-1">Subject Area<span style={{ color: 'red' }}>*</span></label>
+            <label htmlFor="subject" className="block mb-2 font-medium">Subject Area<span className="text-red-500">*</span></label>
             <select 
               id="subject" 
-              className="w-full p-2 border"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={formData.subject}
               onChange={handleChange}
               required
@@ -569,10 +569,10 @@ export default function LessonPlanPage() {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="topic" className="block mb-1">Topic<span style={{ color: 'red' }}>*</span></label>
+            <label htmlFor="topic" className="block mb-2 font-medium">Topic<span className="text-red-500">*</span></label>
             <select 
               id="topic" 
-              className="w-full p-2 border"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={formData.topic}
               onChange={handleChange}
               required
@@ -586,30 +586,32 @@ export default function LessonPlanPage() {
           </div>
           
           {availableOptions.length > 0 && (
-            <div className="mb-4">
-              <label className="block mb-1">Specific Focus Areas</label>
-              <div className="p-2 border">
-                {availableOptions.map(option => (
-                  <div key={option.id} className="mb-1">
-                    <input
-                      type="checkbox"
-                      id={`option-${option.id}`}
-                      checked={formData.selectedOptions.includes(option.id)}
-                      onChange={() => handleCheckboxChange(option.id)}
-                      className="mr-2"
-                    />
-                    <label htmlFor={`option-${option.id}`}>{option.label}</label>
-                  </div>
-                ))}
+            <div className="mb-5">
+              <label className="block mb-2 font-medium">Specific Focus Areas</label>
+              <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                <div className="grid grid-cols-2 gap-2">
+                  {availableOptions.map(option => (
+                    <div key={option.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`option-${option.id}`}
+                        checked={formData.selectedOptions.includes(option.id)}
+                        onChange={() => handleCheckboxChange(option.id)}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <label htmlFor={`option-${option.id}`}>{option.label}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
           
           <div className="mb-4">
-            <label htmlFor="time" className="block mb-1">Lesson Duration</label>
+            <label htmlFor="time" className="block mb-2 font-medium">Lesson Duration</label>
             <select 
               id="time" 
-              className="w-full p-2 border"
+              className="w-full p-2 border border-gray-300 rounded-md"
               value={formData.time}
               onChange={handleChange}
             >
@@ -621,11 +623,11 @@ export default function LessonPlanPage() {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="standards" className="block mb-1">Standards</label>
+            <label htmlFor="standards" className="block mb-2 font-medium">Standards</label>
             <input 
               type="text" 
               id="standards" 
-              className="w-full p-2 border" 
+              className="w-full p-2 border border-gray-300 rounded-md" 
               placeholder="e.g., CCSS.ELA-LITERACY.RL.5.1" 
               value={formData.standards}
               onChange={handleChange}
@@ -633,26 +635,28 @@ export default function LessonPlanPage() {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="objectives" className="block mb-1">Learning Objectives</label>
+            <label htmlFor="objectives" className="block mb-2 font-medium">Learning Objectives</label>
             <textarea 
               id="objectives" 
-              className="w-full p-2 border" 
+              className="w-full p-2 border border-gray-300 rounded-md" 
               placeholder="e.g., Students will be able to identify and compare fractions..." 
               value={formData.objectives}
               onChange={handleChange}
               rows={3}
+              style={{ resize: 'vertical' }}
             />
           </div>
           
           <div className="mb-4">
-            <label htmlFor="materials" className="block mb-1">Materials Available</label>
+            <label htmlFor="materials" className="block mb-2 font-medium">Materials Available</label>
             <textarea 
               id="materials" 
-              className="w-full p-2 border" 
+              className="w-full p-2 border border-gray-300 rounded-md" 
               placeholder="List materials you have available (e.g., paper, markers, iPads, manipulatives)..." 
               value={formData.materials}
               onChange={handleChange}
               rows={2}
+              style={{ resize: 'vertical' }}
             />
             <p className="text-xs mt-1 text-gray-500">
               This helps ensure your lesson plan only includes activities using available resources.
@@ -660,14 +664,15 @@ export default function LessonPlanPage() {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="notes" className="block mb-1">Other Notes or Requirements</label>
+            <label htmlFor="notes" className="block mb-2 font-medium">Other Notes or Requirements</label>
             <textarea 
               id="notes" 
-              className="w-full p-2 border" 
+              className="w-full p-2 border border-gray-300 rounded-md" 
               placeholder="Add any other specific requirements or notes for this lesson plan..." 
               value={formData.notes}
               onChange={handleChange}
               rows={3}
+              style={{ resize: 'vertical' }}
             />
             <p className="text-xs mt-1 text-gray-500">
               Examples: "Need to include group work", "Must have a homework component", "Should be inquiry-based"
@@ -678,7 +683,9 @@ export default function LessonPlanPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-2 px-4"
+              className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {isLoading ? 'Generating...' : isDemoMode ? 'Generate Demo Lesson Plan' : 'Generate AI Lesson Plan'}
             </button>
@@ -689,7 +696,7 @@ export default function LessonPlanPage() {
           <div className="flex justify-between mb-4">
             <button
               onClick={() => setIsFormVisible(true)}
-              className="bg-gray-500 text-white py-2 px-4"
+              className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md"
             >
               Back to Form
             </button>
@@ -697,21 +704,21 @@ export default function LessonPlanPage() {
             <div className="flex space-x-2">
               <button
                 onClick={handlePrint}
-                className="bg-green-600 text-white py-2 px-4"
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md"
               >
                 Print Lesson Plan
               </button>
               
               <button
                 onClick={handleSaveLessonPlan}
-                className="bg-blue-600 text-white py-2 px-4"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md"
               >
                 Save Lesson Plan
               </button>
             </div>
           </div>
           
-          <div className="bg-white p-4 border lesson-plan-content">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 lesson-plan-content">
             <ReactMarkdown>{lessonPlan}</ReactMarkdown>
           </div>
         </div>
