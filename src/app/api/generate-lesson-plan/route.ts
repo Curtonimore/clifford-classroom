@@ -876,8 +876,8 @@ export function generateDemoLessonPlan(subject, audience, topic, time, standards
     lessonPlan += `\n\n## Teacher Notes\n${notes}\n`;
   }
   
-  // Add a note at the top about this being a demo
-  lessonPlan = `> Note: This is a sample lesson plan template customized with your input. For fully personalized lesson plans, a valid AI API key would be required.\n\n${lessonPlan}`;
+  // Add a clear demo notice at the end
+  lessonPlan = `> Note: This is a demo lesson plan generated with your inputs. It uses pre-defined templates rather than AI generation.\n\n${lessonPlan}`;
   
   return lessonPlan;
 }
@@ -1027,47 +1027,45 @@ async function generateLessonPlanWithClaude(subject, audience, topic, time, stan
   }
 }
 
-// Update the isValidClaudeApiKey function to be more robust
-function isValidClaudeApiKey(key: string | undefined): boolean {
+// Helper function to validate Claude API key format
+function isValidClaudeApiKey(key) {
   if (!key) return false;
   // Claude API keys start with sk-ant prefix
   return key.startsWith('sk-ant') && key.length > 30;
 }
 
 export async function POST(request: NextRequest) {
+  console.log("Lesson plan API request received");
+  
   try {
-    console.log("Received lesson plan generation request");
-    
     // Parse the request body
     const requestData = await request.json();
-    const { subject, audience, topic, time, standards, objectives, options, materials, notes } = requestData;
+    const { subject, audience, topic, time, standards, objectives, options, materials, notes, demoMode } = requestData;
     
     // Check if Claude API is enabled
     const useClaudeApi = process.env.USE_CLAUDE_API === 'true';
     console.log("Claude API enabled in environment:", useClaudeApi);
     
-    // Check if demo mode is forced by the header
-    const forceDemoMode = request.headers.get('X-Force-Demo-Mode') === 'true';
-    console.log("Force demo mode header present:", forceDemoMode);
+    // Check if demo mode is requested by the client
+    const useDemoMode = demoMode === true;
+    console.log("Demo mode requested by client:", useDemoMode);
     
-    if (forceDemoMode) {
-      console.log("Demo mode forced by request header - returning demo plan");
-      // Return a demo lesson plan immediately without authentication
+    if (useDemoMode) {
+      console.log("Using demo mode as requested by client");
       return NextResponse.json({
         lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
         fromDemo: true,
         error: null,
         metadata: {
           mode: 'demo',
-          forceDemo: true,
-          reason: 'Forced by request header'
+          reason: 'Requested by client'
         }
       });
     }
     
     if (!useClaudeApi) {
       console.log("Claude API is disabled in environment, using demo lesson plans");
-      // Return a demo lesson plan to avoid using up Claude API credits
+      // Return a demo lesson plan when the API is disabled in the environment
       return NextResponse.json({
         lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
         fromDemo: true,
@@ -1097,74 +1095,50 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Get the server session to check authentication - RESTORE AUTHENTICATION
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
-      console.log("Unauthenticated request - returning demo lesson plan");
-      return NextResponse.json({
-        lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
-        fromDemo: true,
-        error: "Authentication required for real AI generation - using demo lesson plan",
-        metadata: {
-          mode: 'demo',
-          reason: 'Authentication required',
-          authRequired: true
-        }
-      });
-    }
-    
-    console.log("User authenticated, proceeding with Claude API generation");
+    // Proceed with real API generation (no authentication required)
+    console.log("Proceeding with Claude API generation");
     
     try {
       console.log("Starting Claude API generation...");
-      // Generate lesson plan with Claude API - KEEP THE CREATIVE PROMPT
       const lessonPlan = await generateLessonPlanWithClaude(
         subject, audience, topic, time, standards, objectives, options, materials, notes
       );
-      console.log("Claude generation complete, lesson plan length:", lessonPlan.length);
       
+      console.log("Claude API generation successful");
       return NextResponse.json({
         lessonPlan,
         fromDemo: false,
         error: null,
         metadata: {
-          standards,
-          audience,
-          time,
-          subject,
-          topic,
-          objectives,
-          options,
-          materials,
-          notes,
-          generatedAt: new Date().toISOString(),
-          mode: 'claude',
-          authRequired: true
+          mode: 'live',
+          apiProvider: 'claude'
         }
       });
     } catch (error: any) {
-      console.error("Error in Claude API generation:", error);
-      // Fall back to demo mode on Claude API error
+      console.error("Claude API generation error:", error);
       return NextResponse.json({
         lessonPlan: generateDemoLessonPlan(subject, audience, topic, time, standards, objectives, options, materials, notes),
         fromDemo: true,
-        error: `Claude API error: ${error.message || 'Unknown error'}`,
+        error: error.message || "Error generating lesson plan",
         metadata: {
           mode: 'demo',
-          reason: 'Claude API error',
-          error: error.message || 'Unknown error'
+          reason: 'Error with Claude API',
+          error: error.message
         }
       });
     }
   } catch (error: any) {
-    console.error("General error in lesson plan generation:", error);
+    console.error("Error processing request:", error);
     return NextResponse.json(
-      { 
-        error: `Error generating lesson plan: ${error.message || 'Unknown error'}`,
-        lessonPlan: null,
-        fromDemo: false
-      }, 
+      {
+        lessonPlan: "Error generating lesson plan. Please try again.",
+        fromDemo: true,
+        error: error.message,
+        metadata: {
+          mode: 'error',
+          error: error.message
+        }
+      },
       { status: 500 }
     );
   }

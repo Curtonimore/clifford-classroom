@@ -97,11 +97,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notification, setNotification] = useState<string | null>(null);
   const [notificationType, setNotificationType] = useState<NotificationType>('info');
   
-  // Subscription state
-  const [userSubscription, setUserSubscription] = useState<SubscriptionInfo | null>(null);
+  // Subscription state - always provide full access
+  const [userSubscription, setUserSubscription] = useState<SubscriptionInfo>({
+    tier: 'premium',
+    expiresAt: null,
+    features: [
+      'unlimited_lesson_plans',
+      'save_lesson_plans',
+      'export_lesson_plans',
+      'ai_generation',
+      'advanced_customization'
+    ],
+    aiCreditsRemaining: Infinity
+  });
   
   // Authentication state for UI
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   
   // Update authentication state when session changes
   useEffect(() => {
@@ -110,7 +121,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Also show a notification when user logs in successfully
       showNotification(`Welcome back, ${session.user.name || 'User'}!`);
     } else {
-      setIsAuthenticated(false);
+      // Still consider user authenticated for feature access
+      setIsAuthenticated(true);
     }
   }, [authStatus, session]);
   
@@ -124,9 +136,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     await signOut({ callbackUrl: '/' });
     showNotification('You have been logged out');
-    // Explicitly update our local state
-    setIsAuthenticated(false);
-    setUserSubscription(null);
+    // Explicitly update our local state - but keep subscription active
+    setIsAuthenticated(true);
+    // Don't set userSubscription to null
   };
   
   // Role check helper - improved version
@@ -157,93 +169,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true; // Everyone is at least a basic user
   };
   
-  // Subscription helpers - Improved with debugging
+  // User subscription & storage usage - always return full access
   useEffect(() => {
-    async function fetchUserSubscription() {
-      console.log('Auth status in subscription effect:', authStatus);
-      console.log('Session in subscription effect:', session);
-      
-      if (authStatus === 'authenticated' && session?.user) {
-        try {
-          // Fetch user subscription info from the API
-          const response = await fetch('/api/user/subscription');
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Subscription data from API:', data);
-            // Add unlimited_lesson_plans feature to all users
-            if (data.subscription && Array.isArray(data.subscription.features)) {
-              data.subscription.features.push('unlimited_lesson_plans');
-            }
-            setUserSubscription(data.subscription);
-          } else {
-            console.warn('API response not OK:', response.status);
-            // Fallback to mock data if API fails
-            const mockSubscriptionInfo: SubscriptionInfo = {
-              tier: 'free',
-              expiresAt: null,
-              // Add unlimited_lesson_plans to free users
-              features: ['demo_lesson_plans', 'basic_profile', 'unlimited_lesson_plans'],
-              aiCreditsRemaining: 5
-            };
-            
-            // If user is an admin, give them premium features
-            if (hasRole('admin')) {
-              mockSubscriptionInfo.tier = 'premium';
-              mockSubscriptionInfo.features = [
-                'unlimited_lesson_plans',
-                'advanced_customization',
-                'admin_dashboard',
-                'export_all_formats',
-                'priority_support'
-              ];
-              mockSubscriptionInfo.aiCreditsRemaining = Infinity; // Truly unlimited credits for admins
-            }
-            
-            setUserSubscription(mockSubscriptionInfo);
-          }
-        } catch (error) {
-          console.error('Error fetching subscription data:', error);
-          setUserSubscription(null);
-        }
-      } else {
-        setUserSubscription(null);
-      }
-    }
-    
-    fetchUserSubscription();
-  }, [authStatus, session]);
+    // No need to fetch subscription - we're using the default full access
+  }, []);
   
-  // Get subscription info
-  const getUserSubscription = (): SubscriptionInfo | null => {
+  // Get user subscription
+  const getUserSubscription = (): SubscriptionInfo => {
     return userSubscription;
   };
   
-  // Check if user has an active subscription (any tier above free)
+  // Check if user has an active subscription (always true)
   const isSubscriptionActive = (): boolean => {
-    if (!userSubscription) return false;
-    
-    if (userSubscription.tier === 'free') return false;
-    
-    // Check expiration if there is one
-    if (userSubscription.expiresAt) {
-      const expirationDate = new Date(userSubscription.expiresAt);
-      if (expirationDate < new Date()) return false;
-    }
-    
     return true;
   };
   
-  // Check if user has a specific feature
+  // Check if user has a specific feature (always true)
   const hasFeature = (feature: string): boolean => {
-    if (!userSubscription) return false;
-    return userSubscription.features.includes(feature);
+    return true;
   };
   
-  // Get AI credits remaining
+  // Get AI credits remaining (always infinite)
   const getAICreditsRemaining = (): number => {
-    if (!userSubscription) return 0;
-    return userSubscription.aiCreditsRemaining;
+    return Infinity;
   };
   
   // Mobile menu toggle

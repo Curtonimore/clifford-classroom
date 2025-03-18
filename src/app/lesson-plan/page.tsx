@@ -230,10 +230,6 @@ export default function LessonPlanPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  
   // Form state
   const [formData, setFormData] = useState({
     standards: '',
@@ -248,18 +244,21 @@ export default function LessonPlanPage() {
   });
   
   // UI state
-  const [availableTopics, setAvailableTopics] = useState<{value: string, label: string}[]>([]);
-  const [topicOptions, setTopicOptions] = useState<{id: string, label: string}[]>([]);
-  
-  // Demo mode state - forced for unauthenticated users, optional for authenticated
-  const [demoMode, setDemoMode] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lessonPlan, setLessonPlan] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState('mathematics');
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [availableOptions, setAvailableOptions] = useState<any[]>([]);
+  const [availableTopics, setAvailableTopics] = useState<any[]>([]);
   
   // AI credits
   const [aiCredits, setAiCredits] = useState(0);
   
   // State for lesson plan generation
   const [isGenerating, setIsGenerating] = useState(false);
-  const [lessonPlan, setLessonPlan] = useState('');
   const [lessonPlanMetadata, setLessonPlanMetadata] = useState<LessonPlanMetadata | null>(null);
   
   // State for saving lesson plan
@@ -277,19 +276,17 @@ export default function LessonPlanPage() {
   useEffect(() => {
     if (authStatus !== 'loading') {
       const authenticated = authStatus === 'authenticated';
-      setIsAuthenticated(authenticated);
-      setAuthChecked(true);
       
       // Force demo mode for unauthenticated users
       if (!authenticated) {
-        setDemoMode(true);
+        setIsDemoMode(true);
       } else {
         // For authenticated users, default to demo mode but allow them to change it
         // Check if user has access to AI lesson plans
         const hasAiAccess = hasFeature('unlimited_lesson_plans');
         if (!hasAiAccess) {
           // Just set default to true, but don't force it
-          setDemoMode(true);
+          setIsDemoMode(true);
         }
         
         // Get AI credits
@@ -316,7 +313,7 @@ export default function LessonPlanPage() {
   
   // Set the current section
   useEffect(() => {
-    setCurrentPath('ai-teaching-tools', 'lesson-plan');
+    setCurrentPath('tools', 'lesson-plan');
   }, [setCurrentPath]);
   
   // Update available topics when subject changes
@@ -329,7 +326,7 @@ export default function LessonPlanPage() {
         topic: '',
         selectedOptions: []
       }));
-      setTopicOptions([]);
+      setAvailableOptions([]);
     } else {
       setAvailableTopics([]);
     }
@@ -339,185 +336,87 @@ export default function LessonPlanPage() {
   useEffect(() => {
     if (formData.subject && formData.topic && 
         SUBJECTS_CONFIG[formData.subject]?.options?.[formData.topic]) {
-      setTopicOptions(SUBJECTS_CONFIG[formData.subject].options[formData.topic]);
+      setAvailableOptions(SUBJECTS_CONFIG[formData.subject].options[formData.topic]);
     } else {
-      setTopicOptions([]);
+      setAvailableOptions([]);
     }
   }, [formData.subject, formData.topic]);
 
-  // Handle form input changes
   const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
-  };
-  
-  // Handle checkbox changes
-  const handleCheckboxChange = (optionId) => {
-    setFormData(prev => {
-      const updatedOptions = prev.selectedOptions.includes(optionId)
-        ? prev.selectedOptions.filter(id => id !== optionId)
-        : [...prev.selectedOptions, optionId];
-        
-      return {
-        ...prev,
-        selectedOptions: updatedOptions
-      };
-    });
-  };
-  
-  // Handle demo mode toggle
-  const handleDemoModeToggle = () => {
-    // Allow any authenticated user to toggle demo mode
-    if (isAuthenticated) {
-      setDemoMode(!demoMode);
-      
-      // Show a notification about premium features if user doesn't have unlimited access
-      if (!demoMode && !hasFeature('unlimited_lesson_plans')) {
-        showNotification('You are using demo mode with limited features. Upgrade for full AI capabilities!');
-      }
-    }
-  };
-  
-  // Redirect to login if not authenticated
-  const handleLoginRedirect = () => {
-    router.push('/api/auth/signin?callbackUrl=/lesson-plan');
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle form submission
+  const handleCheckboxChange = (optionId) => {
+    setFormData((prev) => {
+      const newSelectedOptions = prev.selectedOptions.includes(optionId)
+        ? prev.selectedOptions.filter(id => id !== optionId)
+        : [...prev.selectedOptions, optionId];
+      
+      return { ...prev, selectedOptions: newSelectedOptions };
+    });
+  };
+
+  const handleDemoModeToggle = () => {
+    setIsDemoMode(!isDemoMode);
+    if (!isDemoMode) {
+      showNotification('Demo mode enabled. The lesson plan will use pre-defined templates instead of AI generation.', 'info');
+    } else {
+      showNotification('Demo mode disabled. The lesson plan will be uniquely generated using AI.', 'info');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Log that we're starting the form submission
-    console.log("Form submission started");
-    
-    // Get the selected subject and topic labels for better readability
-    const subjectLabel = formData.subject ? SUBJECTS_CONFIG[formData.subject].label : '';
-    
-    const topicObj = formData.subject && formData.topic && SUBJECTS_CONFIG[formData.subject]?.topics
-      ? SUBJECTS_CONFIG[formData.subject].topics.find(t => t.value === formData.topic)
-      : null;
-    const topicLabel = topicObj?.label || '';
-    
-    // Get selected option labels
-    const selectedOptionLabels = formData.selectedOptions.map(optId => {
-      const option = topicOptions.find(opt => opt.id === optId);
-      return option?.label || '';
-    }).join(", ");
-    
-    // Get audience from grade level
-    const audienceObj = GRADE_LEVELS.find(g => g.value === formData.audience);
-    const audienceLabel = audienceObj?.label || formData.audience;
-    
-    // Get time from duration
-    const timeObj = DURATION_OPTIONS.find(d => d.value === formData.time);
-    const timeLabel = timeObj?.label || formData.time;
-    
-    // Log the form data being sent to the API
-    console.log("Form data to be sent:", {
-      subject: subjectLabel,
-      topic: topicLabel,
-      audience: audienceLabel,
-      time: timeLabel,
-      options: selectedOptionLabels,
-      objectives: formData.objectives,
-      standards: formData.standards,
-      materials: formData.materials,
-      notes: formData.notes,
-      demoMode: demoMode
-    });
-    
-    // Validate form
-    if (!formData.subject || !formData.topic || !formData.audience) {
-      showNotification('Please select Grade Level, Subject, and Topic');
-      return;
-    }
-    
-    setIsGenerating(true);
+    setIsLoading(true);
+    setError(null);
     
     try {
-      console.log("Sending API request...");
-      // Build request parameters
-      const requestParams = {
+      // Create request payload - include demoMode flag
+      const payload = {
+        ...formData,
+        demoMode: isDemoMode
+      };
+      
+      // Send API request
+      const response = await fetch('/api/generate-lesson-plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          standards: formData.standards,
-          audience: audienceLabel,
-          time: timeLabel,
-          subject: subjectLabel,
-          topic: topicLabel,
-          objectives: formData.objectives,
-          options: selectedOptionLabels,
-          materials: formData.materials,
-          notes: formData.notes
-        })
-      };
-      
-      // Add demo mode header only if demo mode is checked
-      if (demoMode) {
-        requestParams.headers['X-Force-Demo-Mode'] = 'true';
-      }
-      
-      const response = await fetch('/api/generate-lesson-plan', requestParams);
-      
-      console.log("API response received, status:", response.status);
+        body: JSON.stringify(payload),
+      });
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API error response:", errorData);
         throw new Error(errorData.error || 'Failed to generate lesson plan');
       }
       
       const data = await response.json();
-      console.log("Lesson plan data received:", {
-        length: data.lessonPlan?.length || 0,
-        fromDemo: data.fromDemo,
-        error: data.error,
-        metadata: data.metadata
-      });
       
+      if (data.error) {
+        setError(data.error);
+        showNotification(data.error, 'error');
+      }
+      
+      // Set the generated lesson plan
       setLessonPlan(data.lessonPlan);
-      setLessonPlanMetadata(data.metadata || {
-        generatedAt: new Date().toISOString(),
-        mode: data.fromDemo ? 'demo' : 'claude'
-      });
       
-      // Show appropriate notification
+      // Hide the form and show the result
+      setIsFormVisible(false);
+      
+      // Show a notification about the source of the lesson plan
       if (data.fromDemo) {
-        const reason = data.metadata?.reason || '';
-        const isIntended = demoMode;
-        let message = isIntended 
-          ? 'Demo lesson plan generated successfully!' 
-          : 'Using demo lesson plan instead of AI generation';
-          
-        if (reason && !isIntended) {
-          message += ` (Reason: ${reason})`;
-        }
-        
-        showNotification(message, isIntended ? 'success' : 'info');
+        showNotification('Generated a demo lesson plan using templates', 'info');
       } else {
-        showNotification('AI-generated lesson plan created successfully!', 'success');
+        showNotification('Successfully generated a custom AI lesson plan!', 'success');
       }
       
-      // Scroll to results
-      setTimeout(() => {
-        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 500);
     } catch (error: any) {
-      console.error('Error generating lesson plan:', error);
-      
-      // Provide more detailed error message to user
-      let errorMessage = 'Failed to generate lesson plan. Please try again.';
-      
-      if (error.message) {
-        errorMessage = `Error: ${error.message}`;
-      }
-      
-      showNotification(errorMessage, 'error');
+      setError(error.message);
+      showNotification(`Error: ${error.message}`, 'error');
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
     }
   };
 
@@ -541,135 +440,6 @@ export default function LessonPlanPage() {
     
     showNotification('Print dialog opened. Please use your browser to print or save as PDF.');
   };
-
-  // Add a special effect for print media
-  useEffect(() => {
-    // Add print styles to document
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @media print {
-        /* Hide everything except the lesson plan */
-        body * {
-          visibility: hidden;
-        }
-        
-        /* Show only the lesson plan container and its children */
-        .lesson-plan-container, 
-        .lesson-plan-container * {
-          visibility: visible;
-        }
-        
-        /* Position the lesson plan at the top of the page */
-        .lesson-plan-container {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          padding: 15mm !important;
-          box-shadow: none !important;
-          border-radius: 0 !important;
-          background-color: white !important;
-        }
-        
-        /* Additional print styling */
-        .lesson-plan-container h1 {
-          font-size: 16pt !important;
-          margin-top: 0 !important;
-          margin-bottom: 8pt !important;
-        }
-        
-        .lesson-plan-container h2 {
-          font-size: 14pt !important;
-          margin-top: 10pt !important;
-          margin-bottom: 6pt !important;
-          page-break-after: avoid !important;
-        }
-        
-        .lesson-plan-container h3 {
-          font-size: 12pt !important;
-          margin-top: 8pt !important;
-          margin-bottom: 4pt !important;
-          page-break-after: avoid !important;
-        }
-        
-        .lesson-plan-container p, 
-        .lesson-plan-container li {
-          font-size: 11pt !important;
-          line-height: 1.3 !important;
-          margin-top: 2pt !important;
-          margin-bottom: 2pt !important;
-        }
-        
-        /* Remove the 'page-break-before: always' rule for h2 elements */
-        /* Only add page breaks before major sections like 'Lesson Plan' or 'Assessment' */
-        .lesson-plan-container h2:not(:first-of-type) {
-          page-break-before: auto;
-        }
-        
-        /* Only force page breaks for these specific sections */
-        .lesson-plan-container h2:matches(:contains('Lesson Procedure'), :contains('Assessment')) {
-          page-break-before: always;
-        }
-        
-        /* Ensure header/footer elements stay with their content */
-        .lesson-plan-metadata {
-          page-break-after: avoid !important;
-        }
-        
-        .lesson-plan-container table {
-          margin-bottom: 8pt !important;
-        }
-        
-        .lesson-plan-container td {
-          padding: 2pt 0 !important;
-        }
-        
-        /* Reduce spacing for lists */
-        .lesson-plan-container ul,
-        .lesson-plan-container ol {
-          margin-top: 2pt !important;
-          margin-bottom: 2pt !important;
-          padding-left: 15pt !important;
-        }
-        
-        /* Control orphans and widows */
-        .lesson-plan-container p, 
-        .lesson-plan-container li,
-        .lesson-plan-container h2,
-        .lesson-plan-container h3 {
-          orphans: 3 !important;
-          widows: 3 !important;
-        }
-        
-        /* Footer with page numbers */
-        @page {
-          margin: 15mm;
-          @bottom-center {
-            content: "Page " counter(page) " of " counter(pages);
-            font-family: serif;
-            font-style: italic;
-            font-size: 9pt;
-          }
-        }
-      }
-      
-      /* Special class added to body during printing */
-      body.printing .lesson-plan-container {
-        background-color: white !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        z-index: 9999 !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // Clean up style when component unmounts
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
   // Handle saving lesson plan
   const handleSaveLessonPlan = async () => {
@@ -740,151 +510,32 @@ export default function LessonPlanPage() {
   };
 
   return (
-    <>
-      <header className="page-header">
-        <h1 className="page-title">Lesson Plan Generator</h1>
-        <p className="page-description">
-          Create customized lesson plans in seconds with our AI-powered tool
-        </p>
-        <div className="back-link" style={{ marginTop: '0.5rem' }}>
-          <Link href="/ai-teaching-tools" style={{ color: '#0070f3', textDecoration: 'none' }}>
-            &larr; Back to AI Teaching Tools
-          </Link>
-        </div>
-      </header>
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <h1 className="text-3xl font-bold mb-6">AI Lesson Plan Generator</h1>
       
-      <section className="content-section">
-        <h2>Generate Your Lesson Plan</h2>
-        <p>
-          Our AI-powered tool helps you create comprehensive lesson plans tailored to your specific needs.
-          Simply select your criteria below and our AI will generate a customized plan for you.
+      {/* Demo Mode Toggle */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="demoModeToggle"
+            checked={isDemoMode}
+            onChange={handleDemoModeToggle}
+            className="mr-2 h-5 w-5"
+          />
+          <label htmlFor="demoModeToggle" className="text-blue-800 font-medium">
+            Use Demo Mode (pre-defined templates)
+          </label>
+        </div>
+        <p className="text-blue-600 text-sm mt-2">
+          {isDemoMode 
+            ? "Demo mode is enabled. Your lesson plan will use pre-defined templates instead of AI generation."
+            : "Demo mode is disabled. Your lesson plan will be uniquely generated using our AI system."}
         </p>
-        
-        {authChecked && !isAuthenticated && (
-          <div className="auth-notice">
-            <div className="auth-message">
-              <h3>Demo Mode</h3>
-              <p>
-                You are currently using the demo version of our Lesson Plan Generator. This version provides 
-                basic functionality with pre-built templates.
-              </p>
-              <p>
-                <strong>Sign in to access advanced features:</strong>
-              </p>
-              <ul>
-                <li>Advanced AI-powered lesson plan generation</li>
-                <li>Save your lesson plans to your account</li>
-                <li>Customize plans with more options</li>
-              </ul>
-              <button 
-                onClick={handleLoginRedirect}
-                className="login-button"
-                style={{ marginTop: '1rem' }}
-              >
-                Sign In to Unlock Full Features
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {isAuthenticated && (
-          <div className="premium-notice">
-            <div className="premium-message">
-              <h3>Coming Soon: Premium Plans</h3>
-              <p>
-                We're excited to announce that premium subscription plans are coming soon!
-              </p>
-              <p>
-                <strong>Premium subscribers will enjoy:</strong>
-              </p>
-              <ul>
-                <li>Unlimited AI-generated lesson plans</li>
-                <li>Advanced customization options</li>
-                <li>Save and organize your lesson plans in your personal library</li>
-                <li>Export to various formats (PDF, Word, Google Docs)</li>
-                <li>Collaborative features for team planning</li>
-              </ul>
-              <p>
-                All registered users will receive an email when premium plans are available.
-                For now, enjoy the demo mode for free!
-              </p>
-              
-              {isAuthenticated && userSubscription && (
-                <div className="subscription-status">
-                  <p><strong>Your current plan:</strong> {userSubscription.tier.charAt(0).toUpperCase() + userSubscription.tier.slice(1)}</p>
-                  <p><strong>AI credits remaining:</strong> {aiCredits === Infinity ? 'Unlimited' : aiCredits}</p>
-                  
-                  {/* Add storage usage information */}
-                  {storageUsage && (
-                    <div className="storage-usage">
-                      <p>
-                        <strong>Lesson Plan Storage:</strong> {storageUsage.used} of {storageUsage.limit === Infinity ? '∞' : storageUsage.limit}
-                        {storageUsage.limit !== Infinity && (
-                          <span className="storage-percentage"> ({storageUsage.percentUsed}% used)</span>
-                        )}
-                      </p>
-                      {storageUsage.limit !== Infinity && (
-                        <div className="storage-bar">
-                          <div 
-                            className="storage-bar-fill" 
-                            style={{ 
-                              width: `${Math.min(storageUsage.percentUsed, 100)}%`,
-                              backgroundColor: storageUsage.percentUsed > 90 
-                                ? '#ef4444' // red for >90%
-                                : storageUsage.percentUsed > 70 
-                                  ? '#f59e0b' // orange for >70%
-                                  : '#10b981' // green for <70%
-                            }}
-                          ></div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  <Link href="/subscription" className="login-button" style={{ display: 'inline-block', marginTop: '0.5rem' }}>
-                    View Subscription Plans
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        <form 
-          onSubmit={handleSubmit}
-          className="form-container" 
-          style={{ maxWidth: '700px', margin: '2rem auto' }}
-        >
-          {isAuthenticated && (
-            <div className="demo-toggle">
-              <label className="demo-toggle-label">
-                <input
-                  type="checkbox"
-                  checked={demoMode}
-                  onChange={handleDemoModeToggle}
-                  className="demo-checkbox"
-                />
-                <span className="demo-toggle-info">
-                  Demo Mode {demoMode ? 'Enabled' : 'Disabled'} 
-                  <small style={{ display: 'block', marginTop: '4px' }}>
-                    {demoMode 
-                      ? 'Using pre-built templates (no AI credits used)' 
-                      : 'Using AI generation (consumes AI credits)'}
-                  </small>
-                </span>
-              </label>
-            </div>
-          )}
-          
-          {!demoMode && !hasFeature('unlimited_lesson_plans') && (
-            <div className="warning-message" style={{ marginBottom: '1rem' }}>
-              <strong>Note:</strong> You are using AI generation with limited credits. 
-              <Link href="/subscription" style={{ marginLeft: '0.5rem', color: '#0070f3' }}>
-                Upgrade to premium
-              </Link> for unlimited access.
-            </div>
-          )}
-          
+      </div>
+      
+      {isFormVisible ? (
+        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
           <div className="form-group">
             <label htmlFor="audience" className="form-label">Grade Level<span style={{ color: 'red' }}>*</span></label>
             <select 
@@ -934,7 +585,7 @@ export default function LessonPlanPage() {
             </select>
           </div>
           
-          {topicOptions.length > 0 && (
+          {availableOptions.length > 0 && (
             <div className="form-group">
               <label className="form-label">Specific Focus Areas</label>
               <div 
@@ -945,7 +596,7 @@ export default function LessonPlanPage() {
                   gap: '0.5rem'
                 }}
               >
-                {topicOptions.map(option => (
+                {availableOptions.map(option => (
                   <div key={option.id} style={{ display: 'flex', alignItems: 'center' }}>
                     <input
                       type="checkbox"
@@ -1033,291 +684,50 @@ export default function LessonPlanPage() {
             </p>
           </div>
           
-          <button 
-            type="submit"
-            className="login-button"
-            style={{ width: '100%' }}
-            disabled={isGenerating}
-          >
-            {isGenerating ? 'Generating...' : `Generate ${demoMode ? 'Demo ' : ''}Lesson Plan`}
-          </button>
-          
-          <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center' }}>
-            <span style={{ color: 'red' }}>*</span> Required fields
-          </p>
+          <div className="mt-8">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline ${
+                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? 'Generating...' : isDemoMode ? 'Generate Demo Lesson Plan' : 'Generate AI Lesson Plan'}
+            </button>
+          </div>
         </form>
-      </section>
-      
-      {lessonPlan && (
-        <section id="results-section" className="content-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Your Lesson Plan</h2>
-            <div>
-              {isAuthenticated && (
-                <button
-                  onClick={handleSaveLessonPlan}
-                  className="home-button primary"
-                  style={{ marginRight: '0.5rem' }}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save to My Account'}
-                </button>
-              )}
-              <button 
+      ) : (
+        <div className="mt-6">
+          <div className="flex justify-between mb-4">
+            <button
+              onClick={() => setIsFormVisible(true)}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+            >
+              Back to Form
+            </button>
+            
+            <div className="flex space-x-2">
+              <button
                 onClick={handlePrint}
-                className="home-button primary"
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
               >
-                Print / Save PDF
+                Print Lesson Plan
+              </button>
+              
+              <button
+                onClick={handleSaveLessonPlan}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+              >
+                Save Lesson Plan
               </button>
             </div>
           </div>
           
-          <div 
-            className="lesson-plan-container"
-            style={{ 
-              backgroundColor: '#f9f9f9', 
-              padding: '1.5rem', 
-              borderRadius: '0.5rem',
-              marginTop: '1rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}
-          >
-            {/* Add metadata section to the printable area */}
-            <div className="lesson-plan-metadata" style={{ marginBottom: '2rem', borderBottom: '1px solid #ddd', paddingBottom: '1rem' }}>
-              <h1 style={{ marginTop: 0 }}>{lessonPlanMetadata?.subject || 'Lesson Plan'}: {lessonPlanMetadata?.topic || ''}</h1>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: '4px 0', width: '150px', fontWeight: 'bold' }}>Grade Level:</td>
-                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.audience || ''}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Duration:</td>
-                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.time || ''}</td>
-                  </tr>
-                  {lessonPlanMetadata?.standards && (
-                    <tr>
-                      <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Standards:</td>
-                      <td style={{ padding: '4px 0' }}>{lessonPlanMetadata.standards}</td>
-                    </tr>
-                  )}
-                  {lessonPlanMetadata?.objectives && (
-                    <tr>
-                      <td style={{ padding: '4px 0', fontWeight: 'bold', verticalAlign: 'top' }}>Objectives:</td>
-                      <td style={{ padding: '4px 0' }}>{lessonPlanMetadata.objectives}</td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td style={{ padding: '4px 0', fontWeight: 'bold' }}>Generated:</td>
-                    <td style={{ padding: '4px 0' }}>{lessonPlanMetadata?.generatedAt ? new Date(lessonPlanMetadata.generatedAt).toLocaleString() : new Date().toLocaleString()}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div style={{ textAlign: 'center', marginTop: '1rem', fontStyle: 'italic', fontSize: '0.9rem' }}>
-                Generated by Clifford Classroom
-              </div>
-            </div>
+          <div className="bg-white shadow-md rounded-lg p-6 lesson-plan-content">
             <ReactMarkdown>{lessonPlan}</ReactMarkdown>
           </div>
-        </section>
+        </div>
       )}
-      
-      <section className="content-section">
-        <h2>How It Works</h2>
-        <ol style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
-          <li>Select your grade level, subject, and topic</li>
-          <li>Choose specific focus areas within your selected topic</li>
-          <li>Add details about standards, objectives, and available materials</li>
-          <li>Include any additional notes or requirements</li>
-          <li>Click "Generate Lesson Plan"</li>
-          <li>Review the generated lesson plan</li>
-          <li>Click "Print / Save PDF" to print or save as PDF</li>
-        </ol>
-      </section>
-      
-      <style jsx>{`
-        .auth-notice {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-top: 1.5rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          border-left: 4px solid #0070f3;
-        }
-        
-        .auth-message {
-          max-width: 600px;
-          margin: 0 auto;
-        }
-        
-        .auth-message h3 {
-          margin-top: 0;
-          color: #0070f3;
-        }
-        
-        .auth-message ul {
-          margin-bottom: 1.5rem;
-        }
-        
-        .auth-message li {
-          margin-bottom: 0.5rem;
-        }
-        
-        .premium-notice {
-          background-color: #f0f8ff;
-          border-radius: 8px;
-          padding: 1.5rem;
-          margin-top: 1.5rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          border-left: 4px solid #8a2be2;
-        }
-        
-        .premium-message {
-          max-width: 600px;
-          margin: 0 auto;
-        }
-        
-        .premium-message h3 {
-          margin-top: 0;
-          color: #8a2be2;
-        }
-        
-        .premium-message ul {
-          margin-bottom: 1.5rem;
-        }
-        
-        .premium-message li {
-          margin-bottom: 0.5rem;
-        }
-        
-        .subscription-status {
-          background-color: white;
-          border-radius: 6px;
-          padding: 1rem;
-          margin-top: 1rem;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .demo-toggle {
-          display: flex;
-          align-items: center;
-          background-color: #f9f9f9;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .demo-toggle-label {
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          font-size: 0.95rem;
-        }
-        
-        .demo-checkbox {
-          margin: 0;
-        }
-        
-        .demo-toggle-info {
-          margin-left: 0.5rem;
-          font-size: 0.85rem;
-          color: #666;
-        }
-
-        .demo-toggle {
-          display: flex;
-          align-items: center;
-          background-color: #f5f7ff;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1.5rem;
-          border: 1px solid #e5edff;
-        }
-        
-        .demo-toggle-label {
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 500;
-          color: #333;
-        }
-        
-        .demo-checkbox {
-          margin: 0;
-          width: 16px;
-          height: 16px;
-          accent-color: #0070f3;
-        }
-        
-        .demo-toggle-info {
-          margin-left: 0.5rem;
-          font-size: 0.85rem;
-          color: #666;
-        }
-        
-        /* Consistent font sizes */
-        h1, h2, h3, h4, h5, h6 {
-          font-family: var(--font-sans);
-          color: #111827;
-        }
-        
-        h1 {
-          font-size: 1.875rem;
-          font-weight: 700;
-        }
-        
-        h2 {
-          font-size: 1.5rem;
-          font-weight: 600;
-        }
-        
-        h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-        }
-        
-        p, li, button, input, textarea, select {
-          font-family: var(--font-sans);
-        }
-        
-        .warning-message {
-          background-color: #fff8e6;
-          border: 1px solid #ffefc2;
-          border-radius: 6px;
-          padding: 0.75rem 1rem;
-          font-size: 0.9rem;
-          color: #92400e;
-        }
-        
-        .storage-usage {
-          margin-top: 0.75rem;
-          padding-top: 0.75rem;
-          border-top: 1px solid #e5edff;
-        }
-        
-        .storage-percentage {
-          font-size: 0.9rem;
-          color: #6b7280;
-          margin-left: 0.5rem;
-        }
-        
-        .storage-bar {
-          height: 8px;
-          background-color: #e5e7eb;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: 0.25rem;
-        }
-        
-        .storage-bar-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.3s ease;
-        }
-      `}</style>
-    </>
+    </div>
   );
 } 
