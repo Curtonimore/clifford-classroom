@@ -510,24 +510,24 @@ export default function LessonPlanPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-6">AI Lesson Plan Generator</h1>
+    <div className="mx-auto px-4 py-8" style={{ maxWidth: "800px" }}>
+      <h1 className="text-3xl font-bold mb-6 text-center">AI Lesson Plan Generator</h1>
       
       {/* Demo Mode Toggle */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6">
+        <div className="flex items-center justify-center">
           <input
             type="checkbox"
             id="demoModeToggle"
             checked={isDemoMode}
             onChange={handleDemoModeToggle}
-            className="mr-2 h-5 w-5"
+            className="mr-3 h-5 w-5 accent-blue-600"
           />
-          <label htmlFor="demoModeToggle" className="text-blue-800 font-medium">
+          <label htmlFor="demoModeToggle" className="text-blue-800 font-medium text-lg">
             Use Demo Mode (pre-defined templates)
           </label>
         </div>
-        <p className="text-blue-600 text-sm mt-2">
+        <p className="text-blue-600 text-sm mt-3 text-center">
           {isDemoMode 
             ? "Demo mode is enabled. Your lesson plan will use pre-defined templates instead of AI generation."
             : "Demo mode is disabled. Your lesson plan will be uniquely generated using our AI system."}
@@ -535,12 +535,12 @@ export default function LessonPlanPage() {
       </div>
       
       {isFormVisible ? (
-        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
-          <div className="form-group">
-            <label htmlFor="audience" className="form-label">Grade Level<span style={{ color: 'red' }}>*</span></label>
+        <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+          <div className="form-group mb-4">
+            <label htmlFor="audience" className="block text-gray-700 font-medium mb-2">Grade Level<span style={{ color: 'red' }}>*</span></label>
             <select 
               id="audience" 
-              className="form-input"
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.audience}
               onChange={handleChange}
               required
@@ -552,11 +552,11 @@ export default function LessonPlanPage() {
             </select>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="subject" className="form-label">Subject Area<span style={{ color: 'red' }}>*</span></label>
+          <div className="form-group mb-4">
+            <label htmlFor="subject" className="block text-gray-700 font-medium mb-2">Subject Area<span style={{ color: 'red' }}>*</span></label>
             <select 
               id="subject" 
-              className="form-input"
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.subject}
               onChange={handleChange}
               required
@@ -568,11 +568,11 @@ export default function LessonPlanPage() {
             </select>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="topic" className="form-label">Topic<span style={{ color: 'red' }}>*</span></label>
+          <div className="form-group mb-4">
+            <label htmlFor="topic" className="block text-gray-700 font-medium mb-2">Topic<span style={{ color: 'red' }}>*</span></label>
             <select 
               id="topic" 
-              className="form-input"
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.topic}
               onChange={handleChange}
               required
@@ -586,37 +586,37 @@ export default function LessonPlanPage() {
           </div>
           
           {availableOptions.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Specific Focus Areas</label>
+            <div className="form-group mb-6">
+              <label className="block text-gray-700 font-medium mb-2">Specific Focus Areas</label>
               <div 
-                className="checkbox-grid"
+                className="checkbox-grid bg-gray-50 p-3 rounded-md border border-gray-200"
                 style={{ 
                   display: 'grid', 
                   gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  gap: '0.5rem'
+                  gap: '0.8rem'
                 }}
               >
                 {availableOptions.map(option => (
-                  <div key={option.id} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div key={option.id} className="flex items-center">
                     <input
                       type="checkbox"
                       id={`option-${option.id}`}
                       checked={formData.selectedOptions.includes(option.id)}
                       onChange={() => handleCheckboxChange(option.id)}
-                      style={{ marginRight: '0.5rem' }}
+                      className="h-4 w-4 accent-blue-600 mr-2"
                     />
-                    <label htmlFor={`option-${option.id}`}>{option.label}</label>
+                    <label htmlFor={`option-${option.id}`} className="text-gray-700">{option.label}</label>
                   </div>
                 ))}
               </div>
             </div>
           )}
           
-          <div className="form-group">
-            <label htmlFor="time" className="form-label">Lesson Duration</label>
+          <div className="form-group mb-4">
+            <label htmlFor="time" className="block text-gray-700 font-medium mb-2">Lesson Duration</label>
             <select 
               id="time" 
-              className="form-input"
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData.time}
               onChange={handleChange}
             >
@@ -627,23 +627,23 @@ export default function LessonPlanPage() {
             </select>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="standards" className="form-label">Standards</label>
+          <div className="form-group mb-4">
+            <label htmlFor="standards" className="block text-gray-700 font-medium mb-2">Standards</label>
             <input 
               type="text" 
               id="standards" 
-              className="form-input" 
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
               placeholder="e.g., CCSS.ELA-LITERACY.RL.5.1" 
               value={formData.standards}
               onChange={handleChange}
             />
           </div>
           
-          <div className="form-group">
-            <label htmlFor="objectives" className="form-label">Learning Objectives</label>
+          <div className="form-group mb-4">
+            <label htmlFor="objectives" className="block text-gray-700 font-medium mb-2">Learning Objectives</label>
             <textarea 
               id="objectives" 
-              className="form-input" 
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
               placeholder="e.g., Students will be able to identify and compare fractions..." 
               value={formData.objectives}
               onChange={handleChange}
@@ -652,11 +652,11 @@ export default function LessonPlanPage() {
             />
           </div>
           
-          <div className="form-group">
-            <label htmlFor="materials" className="form-label">Materials Available</label>
+          <div className="form-group mb-4">
+            <label htmlFor="materials" className="block text-gray-700 font-medium mb-2">Materials Available</label>
             <textarea 
               id="materials" 
-              className="form-input" 
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
               placeholder="List materials you have available (e.g., paper, markers, iPads, manipulatives)..." 
               value={formData.materials}
               onChange={handleChange}
@@ -668,11 +668,11 @@ export default function LessonPlanPage() {
             </p>
           </div>
           
-          <div className="form-group">
-            <label htmlFor="notes" className="form-label">Other Notes or Requirements</label>
+          <div className="form-group mb-4">
+            <label htmlFor="notes" className="block text-gray-700 font-medium mb-2">Other Notes or Requirements</label>
             <textarea 
               id="notes" 
-              className="form-input" 
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500" 
               placeholder="Add any other specific requirements or notes for this lesson plan..." 
               value={formData.notes}
               onChange={handleChange}
@@ -684,11 +684,11 @@ export default function LessonPlanPage() {
             </p>
           </div>
           
-          <div className="mt-8">
+          <div className="mt-8 text-center">
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline ${
+              className={`max-w-xs mx-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -698,7 +698,7 @@ export default function LessonPlanPage() {
         </form>
       ) : (
         <div className="mt-6">
-          <div className="flex justify-between mb-4">
+          <div className="flex justify-between mb-6">
             <button
               onClick={() => setIsFormVisible(true)}
               className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
@@ -706,7 +706,7 @@ export default function LessonPlanPage() {
               Back to Form
             </button>
             
-            <div className="flex space-x-2">
+            <div className="flex space-x-3">
               <button
                 onClick={handlePrint}
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
@@ -723,7 +723,7 @@ export default function LessonPlanPage() {
             </div>
           </div>
           
-          <div className="bg-white shadow-md rounded-lg p-6 lesson-plan-content">
+          <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200 lesson-plan-content">
             <ReactMarkdown>{lessonPlan}</ReactMarkdown>
           </div>
         </div>
