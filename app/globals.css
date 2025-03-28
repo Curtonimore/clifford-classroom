@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font face declaration for Average with absolute path */
+@font-face {
+  font-family: 'Average';
+  src: url('https://fonts.gstatic.com/s/average/v18/fC1hPYBHe23MxA7rIeJwVWytLQ.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+  --brand-green: #1B4332;
+  --brand-green-light: #2D6A4F;
+}
+
+/* Base styles with Average font */
+html, body {
+  font-family: 'Average', serif !important;
+}
+
+/* Force Average everywhere */
+* {
+  font-family: 'Average', serif !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+p, span, div, button, input, textarea,
+.font-sans, .font-serif, .font-mono {
+  font-family: 'Average', serif !important;
+}
+
+/* PDF viewer specific styles */
+.react-pdf__Page,
+.react-pdf__Text {
+  font-family: 'Average', serif !important;
+}

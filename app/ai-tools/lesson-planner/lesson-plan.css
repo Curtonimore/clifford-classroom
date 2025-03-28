@@ -1,0 +1,60 @@
+/* Import Average font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Average&display=swap');
+
+/* Custom styles for the lesson plan */
+.lesson-plan-content {
+  font-family: 'Average', serif !important;
+  line-height: 1.6;
+  color: #333;
+}
+
+.lesson-plan-content h1, 
+.lesson-plan-content h2, 
+.lesson-plan-content h3, 
+.lesson-plan-content h4, 
+.lesson-plan-content h5, 
+.lesson-plan-content h6 {
+  font-family: 'Average', serif !important;
+  color: #1B4332;
+  font-weight: bold;
+}
+
+.lesson-plan-content p {
+  font-family: 'Average', serif !important;
+  margin-bottom: 1rem;
+}
+
+/* Enhanced bullet points */
+.lesson-plan-content .bullet-point {
+  display: flex;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.lesson-plan-content .bullet-marker {
+  margin-right: 0.5rem;
+  color: #1B4332;
+}
+
+/* Box styling */
+.lesson-plan-content .info-box {
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Print styles for better PDF output */
+@media print {
+  .lesson-plan-content {
+    font-size: 12pt;
+  }
+  
+  .lesson-plan-content h1 {
+    font-size: 20pt;
+  }
+  
+  .lesson-plan-content h2 {
+    font-size: 16pt;
+  }
+} 
