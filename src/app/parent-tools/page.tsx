@@ -1,0 +1,10 @@
+export default function ParentTools() {
+  return (
+    <main className="max-w-4xl mx-auto px-4 py-20 font-average">
+      <h1 className="text-4xl text-darkgreen font-bold mb-4">Simple Tools for Smarter Learning at Home</h1>
+      <p className="text-lg text-gray-700 mb-6">From IEPs to tech picks — help your child thrive.</p>
+      <hr className="my-6 border-gray-300" />
+      <p>This section will display dynamic content soon.</p>
+    </main>
+  );
+} 
