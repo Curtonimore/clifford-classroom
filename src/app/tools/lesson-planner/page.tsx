@@ -39,7 +39,6 @@ export default function LessonPlanner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
-  const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -61,7 +60,6 @@ export default function LessonPlanner() {
     setError("");
     setLoading(true);
     setPreview(null);
-    setDocxBlob(null);
     try {
       const res = await fetch("/api/preview-lesson-plan", {
         method: "POST",
@@ -86,8 +84,12 @@ export default function LessonPlanner() {
       }
       const data = await res.json();
       setPreview(data.lessonText);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Something went wrong.");
+      } else {
+        setError("Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
@@ -119,7 +121,6 @@ export default function LessonPlanner() {
         throw new Error(data.error || "Failed to generate lesson plan.");
       }
       const blob = await res.blob();
-      setDocxBlob(blob);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -130,8 +131,12 @@ export default function LessonPlanner() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Something went wrong.");
+      } else {
+        setError("Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
@@ -139,7 +144,6 @@ export default function LessonPlanner() {
 
   const handleRegenerate = () => {
     setPreview(null);
-    setDocxBlob(null);
     setError("");
   };
 
