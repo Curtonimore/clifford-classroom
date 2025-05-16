@@ -7,6 +7,11 @@ module.exports = {
       },
       colors: {
         darkgreen: '#0f5132',
+        brand: {
+          green: '#2D4739',
+          'green-dark': '#223528',
+          'green-light': '#3a5c47',
+        },
       },
     },
   },
